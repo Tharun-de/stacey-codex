@@ -7,6 +7,7 @@ const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
+  const isHomePage = location.pathname === '/';
 
   const toggleMenu = () => {
     setIsOpen(!isOpen);
@@ -63,30 +64,32 @@ const Navbar = () => {
     }
   };
 
+  const shouldBeTransparent = isHomePage && !isScrolled;
+
   return (
     <nav className={`fixed w-full z-50 transition-all duration-300 ${
-      isScrolled ? 'bg-white shadow-md py-2' : 'bg-transparent py-4'
+      shouldBeTransparent ? 'bg-transparent py-4' : 'bg-white shadow-md py-2'
     }`}>
       <div className="container mx-auto px-4 md:px-6">
         <div className="flex justify-between items-center">
           <Link to="/" className="flex items-center space-x-2">
-            <Salad size={isScrolled ? 28 : 34} className="text-[#7D9D74] transition-all duration-300" />
+            <Salad size={shouldBeTransparent ? 34 : 28} className="text-[#7D9D74] transition-all duration-300" />
             <div className={`transition-all duration-300 ${
-              isScrolled ? "" : "transform scale-125 origin-left"
+              shouldBeTransparent ? "transform scale-125 origin-left" : ""
             }`}>
               <span className={`font-bold font-heading text-xl md:text-2xl ${
-                isScrolled ? 'text-gray-800' : 'text-white drop-shadow-md'
+                shouldBeTransparent ? 'text-white drop-shadow-md' : 'text-gray-800'
               }`}>
                 Stacey's Wraps
               </span>
-              {!isScrolled && 
+              {shouldBeTransparent && 
                 <div className="h-0.5 bg-brand-secondary mt-1 animate-pulse"></div>
               }
             </div>
           </Link>
 
           {/* Desktop Menu */}
-          <div className="hidden md:flex space-x-8">
+          <div className="hidden md:flex items-center space-x-6">
             {navItems.map((item) => (
               <Link
                 key={item.path}
@@ -94,7 +97,7 @@ const Navbar = () => {
                 className={`font-medium transition-colors duration-200 ${
                   location.pathname === item.path 
                     ? 'text-[#E67E22] border-b-2 border-[#E67E22]' 
-                    : isScrolled ? 'text-gray-700 hover:text-[#7D9D74]' : 'text-white hover:text-brand-cream'
+                    : shouldBeTransparent ? 'text-white hover:text-brand-cream' : 'text-gray-700 hover:text-[#7D9D74]'
                 }`}
               >
                 {item.title}
@@ -103,14 +106,13 @@ const Navbar = () => {
           </div>
 
           {/* Mobile Menu Button */}
-          <button className={`md:hidden ${isScrolled ? 'text-gray-800' : 'text-white'}`} onClick={toggleMenu}>
+          <button className={`md:hidden ${shouldBeTransparent ? 'text-white' : 'text-gray-800'}`} onClick={toggleMenu}>
             {isOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
         </div>
       </div>
 
-      {/* Mobile Menu - AnimatePresence could be used here for exit animations if desired */}
-      {/* For simplicity, direct animation on visibility for now */}
+      {/* Mobile Menu */}
       <motion.div 
         className={`
           md:hidden bg-white fixed inset-x-0 shadow-md
@@ -118,14 +120,14 @@ const Navbar = () => {
         `}
         initial="closed"
         animate={isOpen ? "open" : "closed"}
-        variants={{ // Simplified variants for the container's visibility
+        variants={{
           open: { opacity: 1, y: 0, transition: { duration: 0.3, ease: "easeOut" } },
           closed: { opacity: 0, y: "-100%", transition: { duration: 0.3, ease: "easeIn" } }
         }}
       >
         <motion.div 
           className="flex flex-col px-4 pt-2 pb-4 space-y-3"
-          variants={mobileMenuVariants} // Apply variants for staggering children
+          variants={mobileMenuVariants}
         >
           {navItems.map((item) => (
             <motion.div variants={mobileMenuItemVariants} key={item.path}>

@@ -152,6 +152,76 @@ const HomePage = () => {
           </div>
         </section>
         
+        {/* Education Section */}
+        <section className="py-24 bg-gray-50">
+          <div className="container mx-auto px-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.8 }}
+              >
+                <h2 className="text-4xl font-heading font-bold mb-6">Lentology & Food Education</h2>
+                <p className="text-lg text-gray-600 mb-6">
+                  Discover the power of plant-based nutrition and sustainable food choices through our 
+                  educational initiatives. Learn about the incredible benefits of lentils and other 
+                  legumes for both your health and the planet.
+                </p>
+                <div className="space-y-4">
+                  <div className="flex items-start gap-2">
+                    <div className="w-6 h-6 rounded-full bg-brand-forest text-white flex items-center justify-center flex-shrink-0 mt-1">
+                      <span className="text-sm">✓</span>
+                    </div>
+                    <p className="text-gray-700">Interactive workshops and cooking demonstrations</p>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <div className="w-6 h-6 rounded-full bg-brand-forest text-white flex items-center justify-center flex-shrink-0 mt-1">
+                      <span className="text-sm">✓</span>
+                    </div>
+                    <p className="text-gray-700">Free educational resources and nutritional guides</p>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <div className="w-6 h-6 rounded-full bg-brand-forest text-white flex items-center justify-center flex-shrink-0 mt-1">
+                      <span className="text-sm">✓</span>
+                    </div>
+                    <p className="text-gray-700">Community programs and school partnerships</p>
+                  </div>
+                </div>
+                <div className="mt-8">
+                  <Link
+                    to="/education"
+                    className="inline-block bg-brand-forest text-white px-8 py-4 rounded-lg 
+                            text-lg font-medium transition-transform hover:scale-105"
+                  >
+                    Explore Food Education
+                  </Link>
+                </div>
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.8, delay: 0.2 }}
+                className="relative"
+              >
+                <img 
+                  src="https://images.pexels.com/photos/7438129/pexels-photo-7438129.jpeg" 
+                  alt="Educational workshop on sustainable food choices and plant-based cooking"
+                  className="rounded-lg shadow-xl"
+                />
+                <div className="absolute -bottom-6 -right-6 bg-white p-4 rounded-lg shadow-lg">
+                  <img 
+                    src="https://images.pexels.com/photos/6157051/pexels-photo-6157051.jpeg" 
+                    alt="Assortment of lentils and legumes" 
+                    className="w-32 h-32 object-cover rounded-md"
+                  />
+                </div>
+              </motion.div>
+            </div>
+          </div>
+        </section>
+        
         {/* Call to Action */}
         <section className="py-24 bg-brand-forest text-white">
           <div className="container mx-auto px-4 text-center">

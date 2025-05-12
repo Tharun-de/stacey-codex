@@ -2,7 +2,7 @@
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ],
-  "buildCommand": "cd project && npm install && npm run build",
-  "outputDirectory": "project/dist",
-  "installCommand": "cd project && npm install"
+  "buildCommand": "cd lentil-life/frontend && npm install && npm run build",
+  "outputDirectory": "lentil-life/frontend/dist",
+  "installCommand": "cd lentil-life/frontend && npm install"
 } 

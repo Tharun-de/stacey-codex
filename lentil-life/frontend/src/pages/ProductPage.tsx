@@ -3,13 +3,16 @@ import { useParams, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { ArrowLeft, Plus, Minus, ChevronDown, ChevronUp, Star } from 'lucide-react';
 import { useCart } from '../context/CartContext';
-import { menuItems } from '../data/menuData';
 import { MenuItem } from '../types';
+
+// Define API URL
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000/api';
 
 const ProductPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [product, setProduct] = useState<MenuItem | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [specialInstructions, setSpecialInstructions] = useState('');
   const [showIngredients, setShowIngredients] = useState(false);
@@ -31,9 +34,26 @@ const ProductPage: React.FC = () => {
 
   useEffect(() => {
     if (id) {
-      const foundProduct = menuItems.find(item => item.id === Number(id));
-      setProduct(foundProduct || null);
-      setLoading(false);
+      const fetchProduct = async () => {
+        try {
+          setLoading(true);
+          const response = await fetch(`${API_URL}/menu/items/${id}`);
+          const data = await response.json();
+          
+          if (data.success) {
+            setProduct(data.item);
+          } else {
+            setError('Failed to load product');
+          }
+          setLoading(false);
+        } catch (error) {
+          console.error(`Error fetching product with ID ${id}:`, error);
+          setError('Error loading product. Please try again later.');
+          setLoading(false);
+        }
+      };
+      
+      fetchProduct();
     }
   }, [id]);
 
@@ -72,6 +92,23 @@ const ProductPage: React.FC = () => {
       <div className="container mx-auto px-4 py-12 max-w-5xl">
         <div className="flex justify-center items-center h-64">
           <p className="text-gray-500">Loading product...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-12 max-w-5xl">
+        <div className="text-center py-16">
+          <h2 className="text-2xl font-light mb-4">Error</h2>
+          <p className="text-red-500 mb-8 font-light">{error}</p>
+          <Link 
+            to="/shop"
+            className="inline-block px-6 py-3 border border-black text-sm uppercase tracking-wide font-light hover:bg-black hover:text-white transition-colors"
+          >
+            Browse Menu
+          </Link>
         </div>
       </div>
     );

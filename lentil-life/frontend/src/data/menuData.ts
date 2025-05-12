@@ -149,5 +149,29 @@ export const menuItems: MenuItem[] = [
       "Avocado",
       "Chipotle sauce"
     ]
+  },
+  {
+    "name": "testlive",
+    "price": 1.95,
+    "category": "lunch",
+    "description": "test - live server ",
+    "image": "http://localhost:4000/images/menu-image-1747081233205-916106469.png",
+    "additionalImages": [],
+    "popular": false,
+    "dietaryInfo": {
+      "vegan": true,
+      "vegetarian": true,
+      "glutenFree": false,
+      "dairyFree": false
+    },
+    "nutritionalInfo": {
+      "calories": 0,
+      "protein": 0,
+      "carbs": 0,
+      "fat": 0,
+      "fiber": 0
+    },
+    "ingredients": [],
+    "id": 6
   }
 ];

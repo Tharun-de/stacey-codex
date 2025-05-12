@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
-import { menuItems } from '../data/menuData';
+// Remove import from static file
+// import { menuItems } from '../data/menuData';
 import { MenuItem as MenuItemType } from '../types';
 import AddToCartButton from '../components/AddToCartButton';
+
+// Define API URL
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000/api';
 
 const ShopPage = () => {
   const [filters, setFilters] = useState({
@@ -13,8 +17,36 @@ const ShopPage = () => {
     dairyFree: false
   });
   
-  const [filteredItems, setFilteredItems] = useState(menuItems);
+  const [filteredItems, setFilteredItems] = useState<MenuItemType[]>([]);
+  const [menuItems, setMenuItems] = useState<MenuItemType[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
+  
+  // Fetch menu items from the API
+  useEffect(() => {
+    const fetchMenuItems = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`${API_URL}/menu/items`);
+        const data = await response.json();
+        
+        if (data.success) {
+          setMenuItems(data.items);
+          setLoading(false);
+        } else {
+          setError('Failed to load menu items');
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error('Error fetching menu items:', error);
+        setError('Error loading menu. Please try again later.');
+        setLoading(false);
+      }
+    };
+    
+    fetchMenuItems();
+  }, []);
   
   // Group items by category
   const breakfast = filteredItems.filter(item => item.category === 'breakfast');
@@ -22,7 +54,10 @@ const ShopPage = () => {
   const dinner = filteredItems.filter(item => item.category === 'dinner');
   const dessert = filteredItems.filter(item => item.category === 'dessert');
   
+  // Filter the items when filters or category changes
   useEffect(() => {
+    if (!menuItems || menuItems.length === 0) return;
+    
     const newFilteredItems = menuItems.filter(item => {
       if (filters.vegan && !item.dietaryInfo.vegan) return false;
       if (filters.vegetarian && !item.dietaryInfo.vegetarian) return false;
@@ -35,7 +70,7 @@ const ShopPage = () => {
     });
     
     setFilteredItems(newFilteredItems);
-  }, [filters, activeCategory]);
+  }, [filters, activeCategory, menuItems]);
   
   const handleFilterChange = (filterKey: keyof typeof filters) => {
     setFilters(prev => ({
@@ -51,6 +86,34 @@ const ShopPage = () => {
     { id: 'dinner', label: 'Dinner' },
     { id: 'dessert', label: 'Dessert' }
   ];
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-12">
+        <div className="flex justify-center items-center h-64">
+          <p className="text-gray-500">Loading menu items...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-12">
+        <div className="flex justify-center items-center h-64 flex-col">
+          <p className="text-red-500 mb-4">{error}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
   
   const renderItemGrid = (items: MenuItemType[]) => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">

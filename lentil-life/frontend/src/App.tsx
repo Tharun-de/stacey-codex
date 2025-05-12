@@ -13,6 +13,9 @@ import AdminMenuPage from './pages/AdminMenuPage';
 import ProductPage from './pages/ProductPage';
 import { CartProvider } from './context/CartContext';
 
+// Define API URL for use throughout the app
+export const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000/api';
+
 function App() {
   // Initially, user is not scrolled, so promo banner space is visible.
   const [isPromoBannerVisible, setIsPromoBannerVisible] = useState(true);

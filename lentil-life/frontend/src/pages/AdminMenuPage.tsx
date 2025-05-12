@@ -17,8 +17,10 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { menuItems } from '../data/menuData';
+import { API_URL } from '../App';
 
-const API_URL = 'http://localhost:4000/api'; // Change this to your actual API URL in production
+// Remove hardcoded API URL
+// const API_URL = 'http://localhost:4000/api'; // Change this to your actual API URL in production
 
 // Define MenuItemAdmin interface specifically for the admin panel
 interface MenuItemAdmin {

@@ -1,0 +1,31 @@
+# Lentil Life Menu Management Template Structure
+
+## Sheet Column Structure:
+- id: Unique identifier for the menu item (number)
+- name: Name of the menu item (text)
+- description: Detailed description of the item (text)
+- price: Price in USD (number)
+- image: URL to the image (text)
+- category: One of 'breakfast', 'lunch', 'dinner', 'dessert' (text)
+- popular: Whether item should be featured as popular (yes/no)
+- vegan: Whether item is vegan (yes/no)
+- vegetarian: Whether item is vegetarian (yes/no)
+- glutenFree: Whether item is gluten-free (yes/no)
+- dairyFree: Whether item is dairy-free (yes/no)
+- calories: Calorie content (number)
+- protein: Protein content in grams (number)
+- carbs: Carbs content in grams (number)
+- fat: Fat content in grams (number)
+- fiber: Fiber content in grams (number)
+- ingredients: Comma-separated list of ingredients (text)
+
+## Example Row:
+1 | Mediterranean Delight | A fresh blend of hummus, falafel, mixed greens, tomatoes, cucumbers, and tahini sauce. | 9.95 | https://images.pexels.com/photos/2955819/pexels-photo-2955819.jpeg | lunch | yes | yes | yes | yes | yes | 420 | 15 | 48 | 18 | 12 | Whole wheat wrap, Hummus, Falafel, Mixed greens, Tomatoes, Cucumbers, Tahini sauce
+
+## Instructions:
+1. Do not modify the first header row
+2. Each row represents one menu item
+3. To add a new item, add a new row at the bottom
+4. To update an existing item, find its row by ID and make changes
+5. To remove an item, delete its entire row
+6. Save changes and click "Upload Menu" in the admin dashboard 

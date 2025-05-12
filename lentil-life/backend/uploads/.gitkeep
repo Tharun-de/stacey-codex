@@ -1,0 +1,2 @@
+# This file ensures that the uploads directory is included in Git
+# The directory will be used to store uploaded Excel files 

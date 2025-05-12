@@ -33,6 +33,14 @@ interface MenuItemAdmin {
   additionalImages?: string[]; // Array of additional image URLs
   isVegan?: boolean;
   isGlutenFree?: boolean;
+  ingredients?: string[]; // Add ingredients array
+  nutritionalInfo?: {     // Add nutritional info
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+    fiber: number;
+  };
 }
 
 const AdminMenuPage: React.FC = () => {
@@ -68,7 +76,15 @@ const AdminMenuPage: React.FC = () => {
     image: '',
     additionalImages: [],
     isVegan: false,
-    isGlutenFree: false
+    isGlutenFree: false,
+    ingredients: [], // Initialize ingredients as empty array
+    nutritionalInfo: {
+      calories: 0,
+      protein: 0,
+      carbs: 0,
+      fat: 0,
+      fiber: 0
+    } // Initialize nutritional info
   });
   const [isAddingItem, setIsAddingItem] = useState(false);
 
@@ -95,6 +111,15 @@ const AdminMenuPage: React.FC = () => {
             category: string;
             description?: string;
             image: string;
+            additionalImages?: string[];
+            ingredients: string[];
+            nutritionalInfo: {
+              calories: number;
+              protein: number;
+              carbs: number;
+              fat: number;
+              fiber: number;
+            };
             dietaryInfo?: {
               vegan: boolean;
               vegetarian: boolean;
@@ -108,6 +133,15 @@ const AdminMenuPage: React.FC = () => {
             category: item.category,
             description: item.description,
             image: item.image,
+            additionalImages: item.additionalImages || [],
+            ingredients: item.ingredients || [],
+            nutritionalInfo: item.nutritionalInfo || {
+              calories: 0,
+              protein: 0,
+              carbs: 0,
+              fat: 0,
+              fiber: 0
+            },
             isVegan: item.dietaryInfo?.vegan,
             isGlutenFree: item.dietaryInfo?.glutenFree
           })));
@@ -287,7 +321,7 @@ const AdminMenuPage: React.FC = () => {
         category: editingItem.category,
         description: editingItem.description || '',
         image: editingItem.image,
-        additionalImages: editingItem.additionalImages || [], // Include additional images
+        additionalImages: editingItem.additionalImages || [],
         popular: false, // Default value
         dietaryInfo: {
           vegan: editingItem.isVegan || false,
@@ -295,14 +329,14 @@ const AdminMenuPage: React.FC = () => {
           glutenFree: editingItem.isGlutenFree || false,
           dairyFree: false // Default value
         },
-        nutritionalInfo: {
+        nutritionalInfo: editingItem.nutritionalInfo || {
           calories: 0,
           protein: 0,
           carbs: 0,
           fat: 0,
           fiber: 0
         },
-        ingredients: []
+        ingredients: editingItem.ingredients || []
       };
 
       const response = await fetch(`${API_URL}/menu/items/${editingItem.id}`, {
@@ -452,7 +486,7 @@ const AdminMenuPage: React.FC = () => {
         category: newItem.category,
         description: newItem.description || '',
         image: newItem.image,
-        additionalImages: newItem.additionalImages || [], // Include additional images
+        additionalImages: newItem.additionalImages || [],
         popular: false, // Default value
         dietaryInfo: {
           vegan: newItem.isVegan || false,
@@ -460,14 +494,14 @@ const AdminMenuPage: React.FC = () => {
           glutenFree: newItem.isGlutenFree || false,
           dairyFree: false // Default value
         },
-        nutritionalInfo: {
+        nutritionalInfo: newItem.nutritionalInfo || {
           calories: 0,
           protein: 0,
           carbs: 0,
           fat: 0,
           fiber: 0
         },
-        ingredients: []
+        ingredients: newItem.ingredients || []
       };
 
       const response = await fetch(`${API_URL}/menu/items`, {
@@ -510,7 +544,15 @@ const AdminMenuPage: React.FC = () => {
           image: '',
           additionalImages: [],
           isVegan: false,
-          isGlutenFree: false
+          isGlutenFree: false,
+          ingredients: [],
+          nutritionalInfo: {
+            calories: 0,
+            protein: 0,
+            carbs: 0,
+            fat: 0,
+            fiber: 0
+          }
         });
         setIsAddingItem(false);
       } else {
@@ -541,7 +583,15 @@ const AdminMenuPage: React.FC = () => {
       image: '',
       additionalImages: [],
       isVegan: false,
-      isGlutenFree: false
+      isGlutenFree: false,
+      ingredients: [],
+      nutritionalInfo: {
+        calories: 0,
+        protein: 0,
+        carbs: 0,
+        fat: 0,
+        fiber: 0
+      }
     });
   };
 
@@ -755,6 +805,97 @@ const AdminMenuPage: React.FC = () => {
     if (e.target.files && e.target.files.length > 0) {
       uploadEditItemImage(e.target.files[0], true);
     }
+  };
+
+  // Function to add ingredient to new item
+  const handleAddIngredient = () => {
+    const newIngredient = prompt("Enter ingredient:");
+    if (newIngredient && newIngredient.trim()) {
+      setNewItem(prev => ({
+        ...prev,
+        ingredients: [...(prev.ingredients || []), newIngredient.trim()]
+      }));
+    }
+  };
+
+  // Function to remove ingredient from new item
+  const handleRemoveIngredient = (index: number) => {
+    setNewItem(prev => {
+      const updatedIngredients = [...(prev.ingredients || [])];
+      updatedIngredients.splice(index, 1);
+      return {
+        ...prev,
+        ingredients: updatedIngredients
+      };
+    });
+  };
+
+  // Function to add ingredient when editing an item
+  const handleAddEditIngredient = () => {
+    const newIngredient = prompt("Enter ingredient:");
+    if (newIngredient && newIngredient.trim() && editingItem) {
+      setEditingItem(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          ingredients: [...(prev.ingredients || []), newIngredient.trim()]
+        };
+      });
+    }
+  };
+
+  // Function to remove ingredient when editing an item
+  const handleRemoveEditIngredient = (index: number) => {
+    setEditingItem(prev => {
+      if (!prev) return null;
+      const updatedIngredients = [...(prev.ingredients || [])];
+      updatedIngredients.splice(index, 1);
+      return {
+        ...prev,
+        ingredients: updatedIngredients
+      };
+    });
+  };
+
+  // Handle nutritional info change for new item
+  const handleNutritionalInfoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setNewItem(prev => ({
+      ...prev,
+      nutritionalInfo: {
+        ...(prev.nutritionalInfo || {
+          calories: 0,
+          protein: 0,
+          carbs: 0,
+          fat: 0,
+          fiber: 0
+        }),
+        [name]: parseInt(value) || 0
+      }
+    }));
+  };
+
+  // Handle nutritional info change for editing item
+  const handleEditNutritionalInfoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!editingItem) return;
+    
+    const { name, value } = e.target;
+    setEditingItem(prev => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        nutritionalInfo: {
+          ...(prev.nutritionalInfo || {
+            calories: 0,
+            protein: 0,
+            carbs: 0,
+            fat: 0,
+            fiber: 0
+          }),
+          [name]: parseInt(value) || 0
+        }
+      };
+    });
   };
 
   return (
@@ -1057,6 +1198,100 @@ const AdminMenuPage: React.FC = () => {
                             </span>
                           </div>
                         </div>
+                        {/* Ingredients Section */}
+                        <div className="md:col-span-2 mt-4">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Ingredients
+                          </label>
+                          
+                          <div className="mb-2 flex flex-wrap gap-2">
+                            {(newItem.ingredients || []).map((ingredient, index) => (
+                              <div key={index} className="flex items-center bg-gray-100 px-2 py-1 rounded">
+                                <span className="text-sm">{ingredient}</span>
+                                <button 
+                                  type="button"
+                                  onClick={() => handleRemoveIngredient(index)}
+                                  className="ml-1 text-red-500 hover:text-red-700"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                          
+                          <button
+                            type="button"
+                            onClick={handleAddIngredient}
+                            className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                          >
+                            <Plus className="w-4 h-4 mr-2" />
+                            Add Ingredient
+                          </button>
+                        </div>
+                        {/* Nutritional Information Section */}
+                        <div className="md:col-span-2 mt-4">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Nutritional Information
+                          </label>
+                          
+                          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+                            <div>
+                              <label className="block text-xs text-gray-500 mb-1">Calories</label>
+                              <input
+                                type="number"
+                                name="calories"
+                                value={newItem.nutritionalInfo?.calories || 0}
+                                onChange={handleNutritionalInfoChange}
+                                className="w-full p-2 border border-gray-300 rounded-md"
+                                min="0"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs text-gray-500 mb-1">Protein (g)</label>
+                              <input
+                                type="number"
+                                name="protein"
+                                value={newItem.nutritionalInfo?.protein || 0}
+                                onChange={handleNutritionalInfoChange}
+                                className="w-full p-2 border border-gray-300 rounded-md"
+                                min="0"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs text-gray-500 mb-1">Carbs (g)</label>
+                              <input
+                                type="number"
+                                name="carbs"
+                                value={newItem.nutritionalInfo?.carbs || 0}
+                                onChange={handleNutritionalInfoChange}
+                                className="w-full p-2 border border-gray-300 rounded-md"
+                                min="0"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs text-gray-500 mb-1">Fat (g)</label>
+                              <input
+                                type="number"
+                                name="fat"
+                                value={newItem.nutritionalInfo?.fat || 0}
+                                onChange={handleNutritionalInfoChange}
+                                className="w-full p-2 border border-gray-300 rounded-md"
+                                min="0"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs text-gray-500 mb-1">Fiber (g)</label>
+                              <input
+                                type="number"
+                                name="fiber"
+                                value={newItem.nutritionalInfo?.fiber || 0}
+                                onChange={handleNutritionalInfoChange}
+                                className="w-full p-2 border border-gray-300 rounded-md"
+                                min="0"
+                              />
+                            </div>
+                          </div>
+                        </div>
                       </div>
                       <div className="mt-4 flex justify-end space-x-2">
                         <button
@@ -1252,6 +1487,100 @@ const AdminMenuPage: React.FC = () => {
                                         <span className="ml-2 text-xs text-gray-500">
                                           You can add multiple images for better product visualization
                                         </span>
+                                      </div>
+                                    </div>
+                                    {/* Ingredients Section for Edit Item */}
+                                    <div className="md:col-span-2 mt-4">
+                                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Ingredients
+                                      </label>
+                                      
+                                      <div className="mb-2 flex flex-wrap gap-2">
+                                        {(editingItem?.ingredients || []).map((ingredient, index) => (
+                                          <div key={index} className="flex items-center bg-gray-100 px-2 py-1 rounded">
+                                            <span className="text-sm">{ingredient}</span>
+                                            <button 
+                                              type="button"
+                                              onClick={() => handleRemoveEditIngredient(index)}
+                                              className="ml-1 text-red-500 hover:text-red-700"
+                                            >
+                                              <Trash2 className="w-3 h-3" />
+                                            </button>
+                                          </div>
+                                        ))}
+                                      </div>
+                                      
+                                      <button
+                                        type="button"
+                                        onClick={handleAddEditIngredient}
+                                        className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                                      >
+                                        <Plus className="w-4 h-4 mr-2" />
+                                        Add Ingredient
+                                      </button>
+                                    </div>
+                                    {/* Nutritional Information Section for Edit Item */}
+                                    <div className="md:col-span-2 mt-4">
+                                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Nutritional Information
+                                      </label>
+                                      
+                                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+                                        <div>
+                                          <label className="block text-xs text-gray-500 mb-1">Calories</label>
+                                          <input
+                                            type="number"
+                                            name="calories"
+                                            value={editingItem?.nutritionalInfo?.calories || 0}
+                                            onChange={handleEditNutritionalInfoChange}
+                                            className="w-full p-2 border border-gray-300 rounded-md"
+                                            min="0"
+                                          />
+                                        </div>
+                                        <div>
+                                          <label className="block text-xs text-gray-500 mb-1">Protein (g)</label>
+                                          <input
+                                            type="number"
+                                            name="protein"
+                                            value={editingItem?.nutritionalInfo?.protein || 0}
+                                            onChange={handleEditNutritionalInfoChange}
+                                            className="w-full p-2 border border-gray-300 rounded-md"
+                                            min="0"
+                                          />
+                                        </div>
+                                        <div>
+                                          <label className="block text-xs text-gray-500 mb-1">Carbs (g)</label>
+                                          <input
+                                            type="number"
+                                            name="carbs"
+                                            value={editingItem?.nutritionalInfo?.carbs || 0}
+                                            onChange={handleEditNutritionalInfoChange}
+                                            className="w-full p-2 border border-gray-300 rounded-md"
+                                            min="0"
+                                          />
+                                        </div>
+                                        <div>
+                                          <label className="block text-xs text-gray-500 mb-1">Fat (g)</label>
+                                          <input
+                                            type="number"
+                                            name="fat"
+                                            value={editingItem?.nutritionalInfo?.fat || 0}
+                                            onChange={handleEditNutritionalInfoChange}
+                                            className="w-full p-2 border border-gray-300 rounded-md"
+                                            min="0"
+                                          />
+                                        </div>
+                                        <div>
+                                          <label className="block text-xs text-gray-500 mb-1">Fiber (g)</label>
+                                          <input
+                                            type="number"
+                                            name="fiber"
+                                            value={editingItem?.nutritionalInfo?.fiber || 0}
+                                            onChange={handleEditNutritionalInfoChange}
+                                            className="w-full p-2 border border-gray-300 rounded-md"
+                                            min="0"
+                                          />
+                                        </div>
                                       </div>
                                     </div>
                                     <div className="md:col-span-2 flex justify-end space-x-2">

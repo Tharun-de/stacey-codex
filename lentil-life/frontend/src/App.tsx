@@ -12,9 +12,17 @@ import EducationPage from './pages/EducationPage';
 import AdminMenuPage from './pages/AdminMenuPage';
 import ProductPage from './pages/ProductPage';
 import { CartProvider } from './context/CartContext';
+import AdminBackupPage from './pages/AdminBackupPage';
+import AdminOrdersPage from './pages/AdminOrdersPage';
+import AdminTimeSlotPage from './pages/AdminTimeSlotPage.tsx';
+import AdminDashboardPage from './pages/AdminDashboardPage';
+import AdminPaymentSettingsPage from './pages/AdminPaymentSettingsPage.tsx';
+import NotFoundPage from './pages/NotFoundPage';
+import LoginPage from './pages/LoginPage';
+import PrivateRoute from './components/PrivateRoute';
 
 // Define API URL for use throughout the app
-export const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000/api';
+export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
 
 function App() {
   // Initially, user is not scrolled, so promo banner space is visible.
@@ -34,25 +42,31 @@ function App() {
   return (
     <HelmetProvider>
       <CartProvider>
-        <BrowserRouter>
-          <div className="flex flex-col min-h-screen">
-            <Navbar onPromoBannerVisibilityChange={handlePromoBannerVisibilityChange} />
-            {/* Add extra padding at the top to account for fixed header elements */}
-            <main className={`flex-grow ${mainPaddingTopClass} transition-all duration-300`}>
-              <Routes>
-                <Route path="/" element={<HomePage />} />
-                <Route path="/shop" element={<ShopPage />} />
+    <BrowserRouter>
+      <div className="flex flex-col min-h-screen">
+        <Navbar onPromoBannerVisibilityChange={handlePromoBannerVisibilityChange} />
+        {/* Add extra padding at the top to account for fixed header elements */}
+        <main className={`flex-grow ${mainPaddingTopClass} transition-all duration-300`}>
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/shop" element={<ShopPage />} />
                 <Route path="/product/:id" element={<ProductPage />} />
-                <Route path="/about" element={<AboutUsPage />} />
-                <Route path="/cart" element={<CartPage />} />
-                <Route path="/contact" element={<ContactPage />} />
-                <Route path="/education" element={<EducationPage />} />
-                <Route path="/admin/menu" element={<AdminMenuPage />} />
-              </Routes>
-            </main>
-            <Footer />
-          </div>
-        </BrowserRouter>
+            <Route path="/about" element={<AboutUsPage />} />
+            <Route path="/cart" element={<CartPage />} />
+            <Route path="/contact" element={<ContactPage />} />
+            <Route path="/education" element={<EducationPage />} />
+            <Route path="/admin" element={<AdminDashboardPage />} />
+            <Route path="/admin/menu" element={<PrivateRoute><AdminMenuPage /></PrivateRoute>} />
+                <Route path="/admin/backups" element={<AdminBackupPage />} />
+                <Route path="/admin/orders" element={<AdminOrdersPage />} />
+                <Route path="/admin/pickup-times" element={<PrivateRoute><AdminTimeSlotPage /></PrivateRoute>} />
+                <Route path="/admin/payment-settings" element={<PrivateRoute><AdminPaymentSettingsPage /></PrivateRoute>} />
+            <Route path="*" element={<NotFoundPage />} />
+          </Routes>
+        </main>
+        <Footer />
+      </div>
+    </BrowserRouter>
       </CartProvider>
     </HelmetProvider>
   );

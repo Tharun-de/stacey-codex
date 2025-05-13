@@ -1,0 +1,120 @@
+const express = require('express');
+const cors = require('cors');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+const { processMenuExcel, updateMenuData } = require('./menuService');
+const { 
+  getAllMenuItems,
+  getMenuItemById,
+  addMenuItem,
+  updateMenuItem,
+  deleteMenuItem,
+  getMenuItemsByCategory,
+  getAllCategories,
+  syncMenuWithFrontend,
+  backupData,
+  restoreFromBackup
+} = require('./jsonUtils');
+const { v4: uuidv4 } = require('uuid');
+const {
+  getAllOrders,
+  getOrderById,
+  createOrder,
+  updateOrderStatus
+} = require('./orderUtils');
+
+const app = express();
+const PORT = process.env.PORT || 4000;
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+
+// Serve static files from the frontend build
+app.use(express.static(path.join(__dirname, '../frontend/dist')));
+
+// Create uploads directory if it doesn't exist
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// Configure file uploads (rest of the app configuration...)
+
+// API Routes (unchanged)
+// ...
+
+// Schedule automatic backups (daily)
+const scheduleBackup = () => {
+  const BACKUP_INTERVAL = 24 * 60 * 60 * 1000; // 24 hours
+  
+  // Skip initial backup in development mode to avoid infinite restarts
+  if (!process.env.DISABLE_AUTO_BACKUP) {
+    console.log('Creating initial backup...');
+    backupData().catch(err => console.error('Error creating initial backup:', err));
+  } else {
+    console.log('Auto backup disabled - skipping initial backup');
+  }
+  
+  // Schedule regular backups with a longer interval in development
+  const interval = process.env.DISABLE_AUTO_BACKUP ? 
+    24 * 60 * 60 * 1000 : // 24 hours
+    BACKUP_INTERVAL;
+  
+  setInterval(async () => {
+    try {
+      // Skip backup if disabled
+      if (process.env.DISABLE_AUTO_BACKUP) {
+        console.log('Auto backup disabled - skipping scheduled backup');
+        return;
+      }
+      
+      await backupData();
+      console.log('Automatic backup created successfully');
+      
+      // Clean up old backups - keep only the most recent 10
+      const backupsDir = path.join(__dirname, 'data', 'backups');
+      if (fs.existsSync(backupsDir)) {
+        const backupFiles = fs.readdirSync(backupsDir)
+          .filter(file => file.endsWith('.json'))
+          .map(file => {
+            const filePath = path.join(backupsDir, file);
+            const stats = fs.statSync(filePath);
+            return {
+              name: file,
+              path: filePath,
+              createdAt: stats.mtime.toISOString()
+            };
+          })
+          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        
+        // Delete older backups (keep 10 most recent)
+        if (backupFiles.length > 10) {
+          backupFiles.slice(10).forEach(file => {
+            fs.unlinkSync(file.path);
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error during automatic backup:', error);
+    }
+  }, interval);
+};
+
+// Serve React application for all other routes
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
+});
+
+// Start the server
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+  
+  // Skip backup scheduling entirely if disabled
+  if (process.env.DISABLE_AUTO_BACKUP) {
+    console.log('Automatic backups disabled');
+  } else {
+    scheduleBackup();
+  }
+}); 

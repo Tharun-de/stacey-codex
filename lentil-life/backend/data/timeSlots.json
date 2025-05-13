@@ -1,0 +1,43 @@
+{
+  "availableDays": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+  "timeSlots": [
+    {
+      "id": "1",
+      "startTime": "09:00",
+      "endTime": "10:00",
+      "maxOrders": 5
+    },
+    {
+      "id": "2",
+      "startTime": "10:00",
+      "endTime": "11:00",
+      "maxOrders": 5
+    },
+    {
+      "id": "3",
+      "startTime": "11:00",
+      "endTime": "12:00",
+      "maxOrders": 5
+    },
+    {
+      "id": "4",
+      "startTime": "12:00",
+      "endTime": "13:00",
+      "maxOrders": 5
+    },
+    {
+      "id": "5",
+      "startTime": "13:00",
+      "endTime": "14:00",
+      "maxOrders": 5
+    },
+    {
+      "id": "6",
+      "startTime": "14:00",
+      "endTime": "15:00",
+      "maxOrders": 5
+    }
+  ],
+  "leadTime": 1,
+  "maxAdvanceBookingDays": 14
+}

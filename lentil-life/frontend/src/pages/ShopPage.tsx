@@ -5,9 +5,10 @@ import { Link } from 'react-router-dom';
 // import { menuItems } from '../data/menuData';
 import { MenuItem as MenuItemType } from '../types';
 import AddToCartButton from '../components/AddToCartButton';
+import { API_URL } from '../App';
 
 // Define API URL
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000/api';
+// const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000/api';
 
 const ShopPage = () => {
   const [filters, setFilters] = useState({
@@ -125,9 +126,9 @@ const ShopPage = () => {
           >
             <Link to={`/product/${item.id}`} className="block">
               <div className="aspect-square overflow-hidden mb-4">
-                <img 
-                  src={item.image} 
-                  alt={item.name}
+              <img 
+                src={item.image} 
+                alt={item.name}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                 />
               </div>
@@ -137,32 +138,32 @@ const ShopPage = () => {
                 <p className="text-gray-700 font-light mb-3">${item.price.toFixed(2)}</p>
               </div>
             </Link>
-            
+              
             <div className="flex flex-wrap gap-2 mb-4">
-              {item.dietaryInfo.vegan && (
+                {item.dietaryInfo.vegan && (
                 <span className="px-2 py-0.5 text-xs uppercase tracking-wide border border-gray-200">
-                  Vegan
-                </span>
-              )}
-              {item.dietaryInfo.vegetarian && (
+                    Vegan
+                  </span>
+                )}
+                {item.dietaryInfo.vegetarian && (
                 <span className="px-2 py-0.5 text-xs uppercase tracking-wide border border-gray-200">
-                  Vegetarian
-                </span>
-              )}
-              {item.dietaryInfo.glutenFree && (
+                    Vegetarian
+                  </span>
+                )}
+                {item.dietaryInfo.glutenFree && (
                 <span className="px-2 py-0.5 text-xs uppercase tracking-wide border border-gray-200">
-                  Gluten-Free
-                </span>
-              )}
-            </div>
-            
+                    Gluten-Free
+                  </span>
+                )}
+              </div>
+              
             <AddToCartButton
               id={item.id}
               name={item.name}
               price={item.price}
               image={item.image}
             />
-          </div>
+            </div>
         ))
       ) : (
         <div className="col-span-full p-8 text-center">
@@ -196,46 +197,46 @@ const ShopPage = () => {
             <div className="max-w-xl mx-auto">
               <h3 className="text-xs uppercase tracking-wide mb-4 font-light text-center">Dietary Preferences</h3>
               <div className="flex flex-wrap justify-center gap-4">
-                <button
-                  onClick={() => handleFilterChange('vegan')}
+              <button
+                onClick={() => handleFilterChange('vegan')}
                   className={`px-3 py-1.5 text-xs uppercase tracking-wide border ${
-                    filters.vegan
+                  filters.vegan
                       ? 'border-black bg-black text-white'
                       : 'border-gray-300 text-gray-700 hover:border-gray-400'
-                  }`}
-                >
-                  Vegan
-                </button>
-                <button
-                  onClick={() => handleFilterChange('vegetarian')}
+                }`}
+              >
+                Vegan
+              </button>
+              <button
+                onClick={() => handleFilterChange('vegetarian')}
                   className={`px-3 py-1.5 text-xs uppercase tracking-wide border ${
-                    filters.vegetarian
+                  filters.vegetarian
                       ? 'border-black bg-black text-white'
                       : 'border-gray-300 text-gray-700 hover:border-gray-400'
-                  }`}
-                >
-                  Vegetarian
-                </button>
-                <button
-                  onClick={() => handleFilterChange('glutenFree')}
+                }`}
+              >
+                Vegetarian
+              </button>
+              <button
+                onClick={() => handleFilterChange('glutenFree')}
                   className={`px-3 py-1.5 text-xs uppercase tracking-wide border ${
-                    filters.glutenFree
+                  filters.glutenFree
                       ? 'border-black bg-black text-white'
                       : 'border-gray-300 text-gray-700 hover:border-gray-400'
-                  }`}
-                >
-                  Gluten-Free
-                </button>
-                <button
-                  onClick={() => handleFilterChange('dairyFree')}
+                }`}
+              >
+                Gluten-Free
+              </button>
+              <button
+                onClick={() => handleFilterChange('dairyFree')}
                   className={`px-3 py-1.5 text-xs uppercase tracking-wide border ${
-                    filters.dairyFree
+                  filters.dairyFree
                       ? 'border-black bg-black text-white'
                       : 'border-gray-300 text-gray-700 hover:border-gray-400'
-                  }`}
-                >
-                  Dairy-Free
-                </button>
+                }`}
+              >
+                Dairy-Free
+              </button>
               </div>
             </div>
           </div>

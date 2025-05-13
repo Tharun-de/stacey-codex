@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { v4: uuidv4 } = require('uuid');
 
 // Path to the menu.json file
 const menuFilePath = path.join(__dirname, 'data', 'menu.json');
@@ -257,6 +258,83 @@ export const menuItems: MenuItem[] = ${JSON.stringify(menuData.items, null, 2)};
   }
 }
 
+/**
+ * Create a backup of the current menu data
+ * @returns {Promise<string>} Backup ID
+ */
+async function backupData() {
+  try {
+    // Create backups directory if it doesn't exist
+    const backupsDir = path.join(__dirname, 'data', 'backups');
+    if (!fs.existsSync(backupsDir)) {
+      fs.mkdirSync(backupsDir, { recursive: true });
+    }
+    
+    // Read current menu data
+    const menuData = await readMenuData();
+    
+    // Generate a unique backup ID
+    const backupId = `${Date.now()}-${uuidv4().substring(0, 8)}`;
+    
+    // Create backup file
+    const backupPath = path.join(backupsDir, `${backupId}.json`);
+    fs.writeFileSync(
+      backupPath,
+      JSON.stringify({
+        timestamp: new Date().toISOString(),
+        data: menuData
+      }, null, 2)
+    );
+    
+    return backupId;
+  } catch (error) {
+    console.error('Error creating backup:', error);
+    throw error;
+  }
+}
+
+/**
+ * Restore menu data from a backup
+ * @param {string} backupId Backup ID to restore from
+ * @returns {Promise<{success: boolean, message: string}>} Result
+ */
+async function restoreFromBackup(backupId) {
+  try {
+    const backupPath = path.join(__dirname, 'data', 'backups', `${backupId}.json`);
+    
+    // Check if backup exists
+    if (!fs.existsSync(backupPath)) {
+      return {
+        success: false,
+        message: `Backup with ID ${backupId} not found`
+      };
+    }
+    
+    // Read backup file
+    const backupData = JSON.parse(fs.readFileSync(backupPath, 'utf8'));
+    
+    // Create a backup of current data before restoring
+    await backupData();
+    
+    // Write data from backup to main data file
+    fs.writeFileSync(
+      path.join(__dirname, 'data', 'menu.json'),
+      JSON.stringify(backupData.data, null, 2)
+    );
+    
+    return {
+      success: true,
+      message: 'Backup restored successfully'
+    };
+  } catch (error) {
+    console.error('Error restoring backup:', error);
+    return {
+      success: false,
+      message: `Error restoring backup: ${error.message}`
+    };
+  }
+}
+
 module.exports = {
   getAllMenuItems,
   getMenuItemById,
@@ -266,5 +344,7 @@ module.exports = {
   getMenuItemsByCategory,
   getAllCategories,
   replaceAllMenuItems,
-  syncMenuWithFrontend
+  syncMenuWithFrontend,
+  backupData,
+  restoreFromBackup
 }; 

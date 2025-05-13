@@ -1,0 +1,10 @@
+node_modules/*
+.git/*
+data/*
+../frontend/*
+**/data/*
+**/node_modules/*
+**/.git/*
+**/uploads/*
+**/public/*
+**/backups/* 

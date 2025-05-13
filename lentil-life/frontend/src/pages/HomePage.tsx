@@ -44,7 +44,7 @@ const HomePage = () => {
                 }
               ].map((category) => (
                 <Link 
-                  key={category.title} 
+                  key={category.title}
                   to={category.link}
                   className="block group"
                 >
@@ -90,7 +90,7 @@ const HomePage = () => {
         <section className="py-20">
           <div className="container mx-auto px-4 md:px-8">
             <h2 className="text-2xl font-light mb-12 text-center">Featured Items</h2>
-            
+              
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {featuredItems.map(item => (
                 <div key={item.id} className="group">
@@ -101,16 +101,16 @@ const HomePage = () => {
                         alt={item.name}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                       />
-                    </div>
+              </div>
                     <h3 className="font-light text-lg mb-1">{item.name}</h3>
                     <p className="text-gray-700 font-light mb-2">${item.price.toFixed(2)}</p>
                   </Link>
-                  <Link 
+                <Link 
                     to={`/product/${item.id}`} 
                     className="text-sm uppercase tracking-wide font-light border-b border-gray-400 pb-0.5 hover:border-black"
-                  >
+                >
                     View Details
-                  </Link>
+                </Link>
                 </div>
               ))}
             </div>

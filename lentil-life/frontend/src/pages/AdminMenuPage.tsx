@@ -13,11 +13,17 @@ import {
   Save,
   Trash2,
   Image,
-  Loader
+  Loader,
+  Search,
+  Filter,
+  Database,
+  ShoppingBag
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { menuItems } from '../data/menuData';
 import { API_URL } from '../App';
+import { resizeImageBeforeUpload } from '../utils/imageService';
+import OptimizedImage from '../components/OptimizedImage';
 
 // Remove hardcoded API URL
 // const API_URL = 'http://localhost:4000/api'; // Change this to your actual API URL in production
@@ -56,6 +62,15 @@ const AdminMenuPage: React.FC = () => {
     show: false,
     message: '',
     type: 'success'
+  });
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterCategory, setFilterCategory] = useState('all');
+  const [filterDietary, setFilterDietary] = useState<{
+    vegan: boolean;
+    glutenFree: boolean;
+  }>({
+    vegan: false,
+    glutenFree: false
   });
   const [items, setItems] = useState<MenuItemAdmin[]>(menuItems.map(item => ({
     id: String(item.id),
@@ -96,6 +111,49 @@ const AdminMenuPage: React.FC = () => {
   // Add state for additional image upload functionality
   const additionalImagesInputRef = useRef<HTMLInputElement>(null);
   const editAdditionalImagesInputRef = useRef<HTMLInputElement>(null);
+
+  // Add filtered items derived state
+  const filteredItems = items.filter(item => {
+    // Search term filter
+    if (searchTerm && !item.name.toLowerCase().includes(searchTerm.toLowerCase()) && 
+        !item.description?.toLowerCase().includes(searchTerm.toLowerCase())) {
+      return false;
+    }
+    
+    // Category filter
+    if (filterCategory !== 'all' && item.category !== filterCategory) {
+      return false;
+    }
+    
+    // Dietary filters
+    if (filterDietary.vegan && !item.isVegan) {
+      return false;
+    }
+    
+    if (filterDietary.glutenFree && !item.isGlutenFree) {
+      return false;
+    }
+    
+    return true;
+  });
+
+  // Function to handle dietary filter change
+  const handleDietaryFilterChange = (filterKey: keyof typeof filterDietary) => {
+    setFilterDietary(prev => ({
+      ...prev,
+      [filterKey]: !prev[filterKey]
+    }));
+  };
+
+  // Function to reset all filters
+  const resetFilters = () => {
+    setSearchTerm('');
+    setFilterCategory('all');
+    setFilterDietary({
+      vegan: false,
+      glutenFree: false
+    });
+  };
 
   // Load menu items from API
   useEffect(() => {
@@ -595,7 +653,7 @@ const AdminMenuPage: React.FC = () => {
     });
   };
 
-  // Update the uploadNewItemImage function to handle multiple image upload
+  // Update the uploadNewItemImage function to handle multiple image upload with compression
   const uploadNewItemImage = async (file: File, isMainImage = true) => {
     if (!file) {
       setNotification({
@@ -616,10 +674,20 @@ const AdminMenuPage: React.FC = () => {
     }
 
     setUploadingImage(true);
-    const formData = new FormData();
-    formData.append('image', file);
-
+    
     try {
+      // Resize/compress the image before uploading
+      const resizedImage = await resizeImageBeforeUpload(file, 1200, 1200, 0.85);
+      
+      // Create a new file from the blob
+      const optimizedFile = new File([resizedImage], file.name, { 
+        type: 'image/jpeg',
+        lastModified: Date.now()
+      });
+      
+      const formData = new FormData();
+      formData.append('image', optimizedFile);
+      
       const response = await fetch(`${API_URL}/upload/image`, {
         method: 'POST',
         body: formData
@@ -646,7 +714,7 @@ const AdminMenuPage: React.FC = () => {
 
         setNotification({
           show: true,
-          message: 'Image uploaded successfully',
+          message: 'Image uploaded and optimized successfully',
           type: 'success'
         });
         
@@ -663,7 +731,7 @@ const AdminMenuPage: React.FC = () => {
       console.error('Error uploading image:', error);
       setNotification({
         show: true,
-        message: 'Error uploading image. Please try again.',
+        message: 'Error processing or uploading image. Please try again.',
         type: 'error'
       });
       return null;
@@ -672,7 +740,7 @@ const AdminMenuPage: React.FC = () => {
     }
   };
 
-  // Update the uploadEditItemImage function for multiple image upload
+  // Update the uploadEditItemImage function for multiple image upload with compression
   const uploadEditItemImage = async (file: File, isMainImage = true) => {
     if (!file) {
       setNotification({
@@ -693,10 +761,20 @@ const AdminMenuPage: React.FC = () => {
     }
 
     setUploadingImage(true);
-    const formData = new FormData();
-    formData.append('image', file);
-
+    
     try {
+      // Resize/compress the image before uploading
+      const resizedImage = await resizeImageBeforeUpload(file, 1200, 1200, 0.85);
+      
+      // Create a new file from the blob
+      const optimizedFile = new File([resizedImage], file.name, { 
+        type: 'image/jpeg',
+        lastModified: Date.now()
+      });
+      
+      const formData = new FormData();
+      formData.append('image', optimizedFile);
+      
       const response = await fetch(`${API_URL}/upload/image`, {
         method: 'POST',
         body: formData
@@ -729,7 +807,7 @@ const AdminMenuPage: React.FC = () => {
 
         setNotification({
           show: true,
-          message: 'Image uploaded successfully',
+          message: 'Image uploaded and optimized successfully',
           type: 'success'
         });
         
@@ -746,7 +824,7 @@ const AdminMenuPage: React.FC = () => {
       console.error('Error uploading image:', error);
       setNotification({
         show: true,
-        message: 'Error uploading image. Please try again.',
+        message: 'Error processing or uploading image. Please try again.',
         type: 'error'
       });
       return null;
@@ -907,40 +985,64 @@ const AdminMenuPage: React.FC = () => {
         <div className="container mx-auto px-4 max-w-4xl">
           {/* Header with tabs */}
           <div className="bg-white rounded-lg shadow-md overflow-hidden mb-6">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <h1 className="text-2xl font-bold text-gray-800">Menu Management</h1>
-              <div className="flex space-x-1">
-                <button
-                  onClick={() => setActiveTab('view')}
-                  className={`px-4 py-2 rounded-md ${
-                    activeTab === 'view' 
-                      ? 'bg-[#7D9D74] text-white' 
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
+            <div className="flex flex-col md:flex-row items-center justify-between p-6 border-b border-gray-200">
+              <h1 className="text-2xl font-bold text-gray-800 mb-4 md:mb-0">Menu Management</h1>
+              <div className="flex flex-wrap gap-2">
+                <Link
+                  to="/admin/orders"
+                  className="px-4 py-2 flex items-center rounded-md bg-blue-100 text-blue-700 hover:bg-blue-200"
                 >
-                  View Menu
-                </button>
-                <button
-                  onClick={() => setActiveTab('directEdit')}
-                  className={`px-4 py-2 rounded-md ${
-                    activeTab === 'directEdit' 
-                      ? 'bg-[#7D9D74] text-white' 
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
+                  <ShoppingBag className="w-4 h-4 mr-1.5" />
+                  Orders
+                </Link>
+                <Link
+                  to="/admin/backups"
+                  className="px-4 py-2 flex items-center rounded-md bg-blue-100 text-blue-700 hover:bg-blue-200"
                 >
-                  Edit Menu
-                </button>
-                <button
-                  onClick={() => setActiveTab('update')}
-                  className={`px-4 py-2 rounded-md ${
-                    activeTab === 'update' 
-                      ? 'bg-[#7D9D74] text-white' 
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
+                  <Database className="w-4 h-4 mr-1.5" />
+                  Backups
+                </Link>
+                <Link 
+                  to="/shop" 
+                  className="px-4 py-2 rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200"
                 >
-                  Bulk Update
-                </button>
+                  View Shop
+                </Link>
               </div>
+            </div>
+            
+            {/* Tab buttons */}
+            <div className="flex border-b border-gray-200 bg-gray-50">
+              <button
+                onClick={() => setActiveTab('view')}
+                className={`px-6 py-3 font-medium ${
+                  activeTab === 'view' 
+                    ? 'border-b-2 border-[#7D9D74] text-[#7D9D74]' 
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                View Menu
+              </button>
+              <button
+                onClick={() => setActiveTab('directEdit')}
+                className={`px-6 py-3 font-medium ${
+                  activeTab === 'directEdit' 
+                    ? 'border-b-2 border-[#7D9D74] text-[#7D9D74]' 
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Edit Menu
+              </button>
+              <button
+                onClick={() => setActiveTab('update')}
+                className={`px-6 py-3 font-medium ${
+                  activeTab === 'update' 
+                    ? 'border-b-2 border-[#7D9D74] text-[#7D9D74]' 
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Bulk Update
+              </button>
             </div>
 
             {/* Notification */}
@@ -963,13 +1065,88 @@ const AdminMenuPage: React.FC = () => {
 
             {/* Content based on active tab */}
             <div className="p-6">
+              {/* Add search and filter section for View Menu and Direct Edit tabs */}
+              {(activeTab === 'view' || activeTab === 'directEdit') && (
+                <div className="mb-6 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                  <div className="flex flex-col md:flex-row md:items-center md:space-x-4 space-y-3 md:space-y-0">
+                    {/* Search */}
+                    <div className="flex-grow">
+                      <div className="relative">
+                        <input 
+                          type="text"
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          placeholder="Search by name or description"
+                          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#7D9D74] focus:border-transparent"
+                        />
+                        <Search className="w-5 h-5 text-gray-400 absolute left-3 top-2.5" />
+                      </div>
+                    </div>
+                    
+                    {/* Category Filter */}
+                    <div className="w-full md:w-auto">
+                      <select
+                        value={filterCategory}
+                        onChange={(e) => setFilterCategory(e.target.value)}
+                        className="w-full md:w-auto pl-3 pr-10 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#7D9D74] focus:border-transparent appearance-none bg-white"
+                      >
+                        <option value="all">All Categories</option>
+                        {categories.map(cat => (
+                          <option key={cat} value={cat}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  
+                  {/* Dietary Filters */}
+                  <div className="mt-3 flex items-center space-x-4">
+                    <span className="text-sm font-medium text-gray-700 flex items-center">
+                      <Filter className="w-4 h-4 mr-1" />
+                      Filters:
+                    </span>
+                    
+                    <label className="inline-flex items-center text-sm">
+                      <input 
+                        type="checkbox"
+                        checked={filterDietary.vegan}
+                        onChange={() => handleDietaryFilterChange('vegan')}
+                        className="mr-1.5 h-4 w-4 text-[#7D9D74] focus:ring-[#7D9D74]"
+                      />
+                      Vegan
+                    </label>
+                    
+                    <label className="inline-flex items-center text-sm">
+                      <input 
+                        type="checkbox"
+                        checked={filterDietary.glutenFree}
+                        onChange={() => handleDietaryFilterChange('glutenFree')}
+                        className="mr-1.5 h-4 w-4 text-[#7D9D74] focus:ring-[#7D9D74]"
+                      />
+                      Gluten Free
+                    </label>
+                    
+                    <button 
+                      onClick={resetFilters}
+                      className="text-sm text-[#7D9D74] hover:text-[#5D7D54] ml-auto"
+                    >
+                      Reset
+                    </button>
+                  </div>
+                  
+                  {/* Results count */}
+                  <div className="mt-3 text-sm text-gray-500">
+                    {filteredItems.length} {filteredItems.length === 1 ? 'item' : 'items'} found
+                  </div>
+                </div>
+              )}
+
               {activeTab === 'view' ? (
                 /* View Menu Tab */
                 <div>
                   <div className="flex items-center justify-between mb-6">
                     <h2 className="text-xl font-semibold flex items-center">
                 <FileText className="w-5 h-5 mr-2 text-[#7D9D74]" />
-                      Current Menu Items ({items.length})
+                      Current Menu Items ({filteredItems.length})
               </h2>
               <Link 
                 to="/shop" 
@@ -981,32 +1158,51 @@ const AdminMenuPage: React.FC = () => {
 
                   {/* Menu Categories */}
                   <div className="space-y-6">
-                    {categories.map(category => (
-                      <div key={category} className="border border-gray-200 rounded-lg overflow-hidden">
-                        <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
-                          <h3 className="font-medium capitalize">{category}</h3>
-                        </div>
-                        <div className="divide-y divide-gray-200">
-                          {items
-                            .filter(item => item.category === category)
-                            .map(item => (
-                              <div key={item.id} className="px-4 py-3 flex items-center justify-between">
-                                <div>
-                                  <h4 className="font-medium">{item.name}</h4>
-                                  <p className="text-sm text-gray-500">${item.price.toFixed(2)}</p>
-                                </div>
-                                <div className="flex space-x-2">
-                                  <img 
-                                    src={item.image} 
-                                    alt={item.name}
-                                    className="w-12 h-12 rounded-md object-cover" 
-                                  />
-                                </div>
+                    {filteredItems.length > 0 ? (
+                      categories
+                        .filter(category => 
+                          filterCategory === 'all' || filterCategory === category
+                        )
+                        .map(category => {
+                          const categoryItems = filteredItems.filter(item => item.category === category);
+                          if (categoryItems.length === 0) return null;
+                          
+                          return (
+                            <div key={category} className="border border-gray-200 rounded-lg overflow-hidden">
+                              <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+                                <h3 className="font-medium capitalize">{category}</h3>
                               </div>
-                            ))}
-                        </div>
+                              <div className="divide-y divide-gray-200">
+                                {categoryItems.map(item => (
+                                  <div key={item.id} className="px-4 py-3 flex items-center justify-between">
+                                    <div>
+                                      <h4 className="font-medium">{item.name}</h4>
+                                      <p className="text-sm text-gray-500">${item.price.toFixed(2)}</p>
+                                    </div>
+                                    <div className="flex space-x-2">
+                                      <img 
+                                        src={item.image} 
+                                        alt={item.name}
+                                        className="w-12 h-12 rounded-md object-cover" 
+                                      />
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        }).filter(Boolean)
+                    ) : (
+                      <div className="text-center py-12 border border-gray-200 rounded-lg">
+                        <p className="text-gray-500">No items match your search criteria.</p>
+                <button
+                          onClick={resetFilters}
+                          className="mt-2 text-[#7D9D74] hover:text-[#5D7D54] font-medium"
+                        >
+                          Reset Filters
+                        </button>
                       </div>
-                    ))}
+                    )}
                   </div>
                 </div>
               ) : activeTab === 'directEdit' ? (
@@ -1101,9 +1297,10 @@ const AdminMenuPage: React.FC = () => {
                           </div>
                           {newItem.image && (
                             <div className="mt-2">
-                              <img 
+                              <OptimizedImage 
                                 src={newItem.image} 
                                 alt="Preview" 
+                                size="thumbnail"
                                 className="w-20 h-20 object-cover rounded-md border border-gray-300" 
                               />
                             </div>
@@ -1154,9 +1351,10 @@ const AdminMenuPage: React.FC = () => {
                             <div className="flex flex-wrap gap-2 mb-2">
                               {newItem.additionalImages.map((img, index) => (
                                 <div key={index} className="relative group">
-                                  <img 
+                                  <OptimizedImage 
                                     src={img} 
                                     alt={`Additional ${index + 1}`} 
+                                    size="thumbnail"
                                     className="w-16 h-16 object-cover border border-gray-200 rounded"
                                   />
                                   <button 
@@ -1185,7 +1383,7 @@ const AdminMenuPage: React.FC = () => {
                                 <Plus className="w-4 h-4 mr-2" />
                               )}
                               Add More Images
-                            </button>
+                </button>
                             <input
                               type="file"
                               ref={additionalImagesInputRef}
@@ -1196,7 +1394,7 @@ const AdminMenuPage: React.FC = () => {
                             <span className="ml-2 text-xs text-gray-500">
                               You can add multiple images for better product visualization
                             </span>
-                          </div>
+              </div>
                         </div>
                         {/* Ingredients Section */}
                         <div className="md:col-span-2 mt-4">
@@ -1300,7 +1498,7 @@ const AdminMenuPage: React.FC = () => {
                         >
                           Cancel
                         </button>
-                <button
+                        <button
                           onClick={handleSaveNewItem}
                           className="px-3 py-1.5 bg-[#7D9D74] text-white rounded-md hover:bg-[#5D7D54]"
                         >
@@ -1313,332 +1511,353 @@ const AdminMenuPage: React.FC = () => {
                   
                   {/* Edit Menu Categories */}
                   <div className="space-y-6">
-                    {categories.map(category => (
-                      <div key={category} className="border border-gray-200 rounded-lg overflow-hidden">
-                        <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex justify-between items-center">
-                          <h3 className="font-medium capitalize">{category}</h3>
-                          {items.filter(item => item.category === category).length === 0 && (
-                            <span className="text-sm text-gray-500">No items in this category</span>
-                          )}
-                        </div>
-                        <div className="divide-y divide-gray-200">
-                          {items
-                            .filter(item => item.category === category)
-                            .map(item => (
-                              <div key={item.id} className="p-4">
-                                {editingItem && editingItem.id === item.id ? (
-                                  /* Edit Form */
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                      <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                                      <input
-                                        type="text"
-                                        name="name"
-                                        value={editingItem.name}
-                                        onChange={handleEditInputChange}
-                                        className="w-full p-2 border border-gray-300 rounded-md"
-                                      />
-                                    </div>
-                                    <div>
-                                      <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                                      <select
-                                        name="category"
-                                        value={editingItem.category}
-                                        onChange={handleEditInputChange}
-                                        className="w-full p-2 border border-gray-300 rounded-md"
-                                      >
-                                        {categories.map(cat => (
-                                          <option key={cat} value={cat}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</option>
-                                        ))}
-                                      </select>
-                                    </div>
-                                    <div>
-                                      <label className="block text-sm font-medium text-gray-700 mb-1">Price ($)</label>
-                                      <input
-                                        type="number"
-                                        name="price"
-                                        value={editingItem.price}
-                                        onChange={handleEditInputChange}
-                                        step="0.01"
-                                        min="0"
-                                        className="w-full p-2 border border-gray-300 rounded-md"
-                                      />
-                                    </div>
-                                    <div>
-                                      <label className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
-                                      <div className="flex items-center space-x-2">
-                                        <input
-                                          type="text"
-                                          name="image"
-                                          value={editingItem.image}
-                                          onChange={handleEditInputChange}
-                                          className="w-full p-2 border border-gray-300 rounded-md"
-                                        />
-                                        <button
-                                          type="button"
-                                          onClick={() => editItemImageRef.current?.click()}
-                                          className="p-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 flex items-center"
-                                          disabled={uploadingImage}
-                                        >
-                                          {uploadingImage ? <Loader className="w-5 h-5 animate-spin" /> : <Image className="w-5 h-5" />}
-                                        </button>
-                                        <input
-                                          type="file"
-                                          ref={editItemImageRef}
-                                          onChange={handleEditItemImageChange}
-                                          accept="image/*"
-                                          className="hidden"
-                                        />
-                                      </div>
-                                      {editingItem.image && (
-                                        <div className="mt-2">
-                                          <img 
-                                            src={editingItem.image} 
-                                            alt="Preview" 
-                                            className="w-20 h-20 object-cover rounded-md border border-gray-300" 
-                                          />
-                                        </div>
-                                      )}
-                                    </div>
-                                    <div className="md:col-span-2">
-                                      <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                                      <textarea
-                                        name="description"
-                                        value={editingItem.description || ''}
-                                        onChange={handleEditInputChange}
-                                        className="w-full p-2 border border-gray-300 rounded-md"
-                                        rows={2}
-                                      />
-                                    </div>
-                                    <div>
-                                      <label className="flex items-center text-sm font-medium text-gray-700">
-                                        <input
-                                          type="checkbox"
-                                          name="isVegan"
-                                          checked={editingItem.isVegan || false}
-                                          onChange={handleEditInputChange}
-                                          className="mr-2"
-                                        />
-                                        Vegan
-                                      </label>
-                                    </div>
-                                    <div>
-                                      <label className="flex items-center text-sm font-medium text-gray-700">
-                                        <input
-                                          type="checkbox"
-                                          name="isGlutenFree"
-                                          checked={editingItem.isGlutenFree || false}
-                                          onChange={handleEditInputChange}
-                                          className="mr-2"
-                                        />
-                                        Gluten Free
-                                      </label>
-                                    </div>
-                                    {/* Additional Images */}
-                                    <div className="mt-4">
-                                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Additional Images (optional)
-                                      </label>
-                                      
-                                      {/* Display current additional images */}
-                                      {editingItem.additionalImages && editingItem.additionalImages.length > 0 && (
-                                        <div className="flex flex-wrap gap-2 mb-2">
-                                          {editingItem.additionalImages.map((img, index) => (
-                                            <div key={index} className="relative group">
-                                              <img 
-                                                src={img} 
-                                                alt={`Additional ${index + 1}`} 
-                                                className="w-16 h-16 object-cover border border-gray-200 rounded"
-                                              />
-                                              <button 
-                                                type="button"
-                                                onClick={() => handleRemoveAdditionalImage(index, false)}
-                                                className="absolute top-0 right-0 bg-red-500 text-white p-1 rounded-full transform translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity"
-                                              >
-                                                <Trash2 className="w-3 h-3" />
-                                              </button>
-                                            </div>
-                                          ))}
-                                        </div>
-                                      )}
-                                      
-                                      {/* Upload additional images button */}
-                                      <div className="flex items-center mt-1">
-                                        <button
-                                          type="button"
-                                          onClick={() => editAdditionalImagesInputRef.current?.click()}
-                                          disabled={uploadingImage}
-                                          className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                                        >
-                                          {uploadingImage ? (
-                                            <Loader className="w-4 h-4 mr-2 animate-spin" />
-                                          ) : (
-                                            <Plus className="w-4 h-4 mr-2" />
-                                          )}
-                                          Add More Images
-                                        </button>
-                                        <input
-                                          type="file"
-                                          ref={editAdditionalImagesInputRef}
-                                          onChange={handleEditAdditionalImageUpload}
-                                          accept="image/*"
-                                          className="hidden"
-                                        />
-                                        <span className="ml-2 text-xs text-gray-500">
-                                          You can add multiple images for better product visualization
-                                        </span>
-                                      </div>
-                                    </div>
-                                    {/* Ingredients Section for Edit Item */}
-                                    <div className="md:col-span-2 mt-4">
-                                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Ingredients
-                                      </label>
-                                      
-                                      <div className="mb-2 flex flex-wrap gap-2">
-                                        {(editingItem?.ingredients || []).map((ingredient, index) => (
-                                          <div key={index} className="flex items-center bg-gray-100 px-2 py-1 rounded">
-                                            <span className="text-sm">{ingredient}</span>
-                                            <button 
-                                              type="button"
-                                              onClick={() => handleRemoveEditIngredient(index)}
-                                              className="ml-1 text-red-500 hover:text-red-700"
-                                            >
-                                              <Trash2 className="w-3 h-3" />
-                                            </button>
-                                          </div>
-                                        ))}
-                                      </div>
-                                      
-                                      <button
-                                        type="button"
-                                        onClick={handleAddEditIngredient}
-                                        className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-                                      >
-                                        <Plus className="w-4 h-4 mr-2" />
-                                        Add Ingredient
-                                      </button>
-                                    </div>
-                                    {/* Nutritional Information Section for Edit Item */}
-                                    <div className="md:col-span-2 mt-4">
-                                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Nutritional Information
-                                      </label>
-                                      
-                                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
-                                        <div>
-                                          <label className="block text-xs text-gray-500 mb-1">Calories</label>
-                                          <input
-                                            type="number"
-                                            name="calories"
-                                            value={editingItem?.nutritionalInfo?.calories || 0}
-                                            onChange={handleEditNutritionalInfoChange}
-                                            className="w-full p-2 border border-gray-300 rounded-md"
-                                            min="0"
-                                          />
-                                        </div>
-                                        <div>
-                                          <label className="block text-xs text-gray-500 mb-1">Protein (g)</label>
-                                          <input
-                                            type="number"
-                                            name="protein"
-                                            value={editingItem?.nutritionalInfo?.protein || 0}
-                                            onChange={handleEditNutritionalInfoChange}
-                                            className="w-full p-2 border border-gray-300 rounded-md"
-                                            min="0"
-                                          />
-                                        </div>
-                                        <div>
-                                          <label className="block text-xs text-gray-500 mb-1">Carbs (g)</label>
-                                          <input
-                                            type="number"
-                                            name="carbs"
-                                            value={editingItem?.nutritionalInfo?.carbs || 0}
-                                            onChange={handleEditNutritionalInfoChange}
-                                            className="w-full p-2 border border-gray-300 rounded-md"
-                                            min="0"
-                                          />
-                                        </div>
-                                        <div>
-                                          <label className="block text-xs text-gray-500 mb-1">Fat (g)</label>
-                                          <input
-                                            type="number"
-                                            name="fat"
-                                            value={editingItem?.nutritionalInfo?.fat || 0}
-                                            onChange={handleEditNutritionalInfoChange}
-                                            className="w-full p-2 border border-gray-300 rounded-md"
-                                            min="0"
-                                          />
-                                        </div>
-                                        <div>
-                                          <label className="block text-xs text-gray-500 mb-1">Fiber (g)</label>
-                                          <input
-                                            type="number"
-                                            name="fiber"
-                                            value={editingItem?.nutritionalInfo?.fiber || 0}
-                                            onChange={handleEditNutritionalInfoChange}
-                                            className="w-full p-2 border border-gray-300 rounded-md"
-                                            min="0"
-                                          />
-                                        </div>
-                                      </div>
-                                    </div>
-                                    <div className="md:col-span-2 flex justify-end space-x-2">
-                                      <button
-                                        onClick={handleCancelEdit}
-                                        className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
-                                      >
-                                        Cancel
-                                      </button>
-                                      <button
-                                        onClick={handleSaveItem}
-                                        className="px-3 py-1.5 bg-[#7D9D74] text-white rounded-md hover:bg-[#5D7D54]"
-                                      >
-                                        <Save className="w-4 h-4 mr-1 inline-block" />
-                                        Save Changes
-                                      </button>
-                                    </div>
-                                  </div>
-                                ) : (
-                                  /* Item Display */
-                                  <div className="flex items-center justify-between">
-                                    <div className="flex items-center">
-                                      <img 
-                                        src={item.image} 
-                                        alt={item.name}
-                                        className="w-14 h-14 rounded-md object-cover mr-4" 
-                                      />
-                                      <div>
-                                        <h4 className="font-medium">{item.name}</h4>
-                                        <p className="text-sm text-gray-600">${item.price.toFixed(2)}</p>
-                                        {item.description && (
-                                          <p className="text-sm text-gray-500 mt-1">{item.description}</p>
-                                        )}
-                                      </div>
-                                    </div>
-                                    <div className="flex space-x-2">
-                                      <button
-                                        onClick={() => handleEditItem(item)}
-                                        className="p-1.5 bg-blue-50 text-blue-600 rounded hover:bg-blue-100"
-                                        title="Edit item"
-                                      >
-                                        <Edit className="w-4 h-4" />
-                                      </button>
-                                      <button
-                                        onClick={() => handleDeleteItem(item.id)}
-                                        className="p-1.5 bg-red-50 text-red-600 rounded hover:bg-red-100"
-                                        title="Delete item"
-                                      >
-                                        <Trash2 className="w-4 h-4" />
-                </button>
-                                  </div>
-                                  </div>
+                    {filteredItems.length > 0 ? (
+                      categories
+                        .filter(category => 
+                          filterCategory === 'all' || filterCategory === category
+                        )
+                        .map(category => {
+                          const categoryItems = filteredItems.filter(item => item.category === category);
+                          if (categoryItems.length === 0) return null;
+                          
+                          return (
+                            <div key={category} className="border border-gray-200 rounded-lg overflow-hidden">
+                              <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex justify-between items-center">
+                                <h3 className="font-medium capitalize">{category}</h3>
+                                {categoryItems.length === 0 && (
+                                  <span className="text-sm text-gray-500">No items in this category</span>
                                 )}
                               </div>
-                            ))}
-                        </div>
+                              <div className="divide-y divide-gray-200">
+                                {categoryItems.map(item => (
+                                  <div key={item.id} className="p-4">
+                                    {editingItem && editingItem.id === item.id ? (
+                                      /* Edit Form */
+                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                          <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                                          <input
+                                            type="text"
+                                            name="name"
+                                            value={editingItem.name}
+                                            onChange={handleEditInputChange}
+                                            className="w-full p-2 border border-gray-300 rounded-md"
+                                          />
+                                        </div>
+                                        <div>
+                                          <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                                          <select
+                                            name="category"
+                                            value={editingItem.category}
+                                            onChange={handleEditInputChange}
+                                            className="w-full p-2 border border-gray-300 rounded-md"
+                                          >
+                                            {categories.map(cat => (
+                                              <option key={cat} value={cat}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</option>
+                                            ))}
+                                          </select>
+                                        </div>
+                                        <div>
+                                          <label className="block text-sm font-medium text-gray-700 mb-1">Price ($)</label>
+                                          <input
+                                            type="number"
+                                            name="price"
+                                            value={editingItem.price}
+                                            onChange={handleEditInputChange}
+                                            step="0.01"
+                                            min="0"
+                                            className="w-full p-2 border border-gray-300 rounded-md"
+                                          />
+                                        </div>
+                                        <div>
+                                          <label className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
+                                          <div className="flex items-center space-x-2">
+                                            <input
+                                              type="text"
+                                              name="image"
+                                              value={editingItem.image}
+                                              onChange={handleEditInputChange}
+                                              className="w-full p-2 border border-gray-300 rounded-md"
+                                            />
+                                            <button
+                                              type="button"
+                                              onClick={() => editItemImageRef.current?.click()}
+                                              className="p-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 flex items-center"
+                                              disabled={uploadingImage}
+                                            >
+                                              {uploadingImage ? <Loader className="w-5 h-5 animate-spin" /> : <Image className="w-5 h-5" />}
+                                            </button>
+                                            <input
+                                              type="file"
+                                              ref={editItemImageRef}
+                                              onChange={handleEditItemImageChange}
+                                              accept="image/*"
+                                              className="hidden"
+                                            />
+                                          </div>
+                                          {editingItem.image && (
+                                            <div className="mt-2">
+                                              <OptimizedImage 
+                                                src={editingItem.image} 
+                                                alt="Preview" 
+                                                size="thumbnail"
+                                                className="w-20 h-20 object-cover rounded-md border border-gray-300" 
+                                              />
+                                            </div>
+                                          )}
+                                        </div>
+                                        <div className="md:col-span-2">
+                                          <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                                          <textarea
+                                            name="description"
+                                            value={editingItem.description || ''}
+                                            onChange={handleEditInputChange}
+                                            className="w-full p-2 border border-gray-300 rounded-md"
+                                            rows={2}
+                                          />
+                                        </div>
+                                        <div>
+                                          <label className="flex items-center text-sm font-medium text-gray-700">
+                                            <input
+                                              type="checkbox"
+                                              name="isVegan"
+                                              checked={editingItem.isVegan || false}
+                                              onChange={handleEditInputChange}
+                                              className="mr-2"
+                                            />
+                                            Vegan
+                                          </label>
+                                        </div>
+                                        <div>
+                                          <label className="flex items-center text-sm font-medium text-gray-700">
+                                            <input
+                                              type="checkbox"
+                                              name="isGlutenFree"
+                                              checked={editingItem.isGlutenFree || false}
+                                              onChange={handleEditInputChange}
+                                              className="mr-2"
+                                            />
+                                            Gluten Free
+                                          </label>
+                                        </div>
+                                        {/* Additional Images */}
+                                        <div className="mt-4">
+                                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Additional Images (optional)
+                                          </label>
+                                          
+                                          {/* Display current additional images */}
+                                          {editingItem.additionalImages && editingItem.additionalImages.length > 0 && (
+                                            <div className="flex flex-wrap gap-2 mb-2">
+                                              {editingItem.additionalImages.map((img, index) => (
+                                                <div key={index} className="relative group">
+                                                  <OptimizedImage 
+                                                    src={img} 
+                                                    alt={`Additional ${index + 1}`} 
+                                                    size="thumbnail"
+                                                    className="w-16 h-16 object-cover border border-gray-200 rounded"
+                                                  />
+                                                  <button 
+                                                    type="button"
+                                                    onClick={() => handleRemoveAdditionalImage(index, false)}
+                                                    className="absolute top-0 right-0 bg-red-500 text-white p-1 rounded-full transform translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                  >
+                                                    <Trash2 className="w-3 h-3" />
+                                                  </button>
+                                                </div>
+                                              ))}
+                                            </div>
+                                          )}
+                                          
+                                          {/* Upload additional images button */}
+                                          <div className="flex items-center mt-1">
+                                            <button
+                                              type="button"
+                                              onClick={() => editAdditionalImagesInputRef.current?.click()}
+                                              disabled={uploadingImage}
+                                              className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                            >
+                                              {uploadingImage ? (
+                                                <Loader className="w-4 h-4 mr-2 animate-spin" />
+                                              ) : (
+                                                <Plus className="w-4 h-4 mr-2" />
+                                              )}
+                                              Add More Images
+                                            </button>
+                                            <input
+                                              type="file"
+                                              ref={editAdditionalImagesInputRef}
+                                              onChange={handleEditAdditionalImageUpload}
+                                              accept="image/*"
+                                              className="hidden"
+                                            />
+                                            <span className="ml-2 text-xs text-gray-500">
+                                              You can add multiple images for better product visualization
+                                            </span>
+                                          </div>
+                                        </div>
+                                        {/* Ingredients Section for Edit Item */}
+                                        <div className="md:col-span-2 mt-4">
+                                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Ingredients
+                                          </label>
+                                          
+                                          <div className="mb-2 flex flex-wrap gap-2">
+                                            {(editingItem?.ingredients || []).map((ingredient, index) => (
+                                              <div key={index} className="flex items-center bg-gray-100 px-2 py-1 rounded">
+                                                <span className="text-sm">{ingredient}</span>
+                                                <button 
+                                                  type="button"
+                                                  onClick={() => handleRemoveEditIngredient(index)}
+                                                  className="ml-1 text-red-500 hover:text-red-700"
+                                                >
+                                                  <Trash2 className="w-3 h-3" />
+                                                </button>
+                                              </div>
+                                            ))}
+                                          </div>
+                                          
+                                          <button
+                                            type="button"
+                                            onClick={handleAddEditIngredient}
+                                            className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                                          >
+                                            <Plus className="w-4 h-4 mr-2" />
+                                            Add Ingredient
+                                          </button>
+                                        </div>
+                                        {/* Nutritional Information Section for Edit Item */}
+                                        <div className="md:col-span-2 mt-4">
+                                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Nutritional Information
+                                          </label>
+                                          
+                                          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+                                            <div>
+                                              <label className="block text-xs text-gray-500 mb-1">Calories</label>
+                                              <input
+                                                type="number"
+                                                name="calories"
+                                                value={editingItem?.nutritionalInfo?.calories || 0}
+                                                onChange={handleEditNutritionalInfoChange}
+                                                className="w-full p-2 border border-gray-300 rounded-md"
+                                                min="0"
+                                              />
+                                            </div>
+                                            <div>
+                                              <label className="block text-xs text-gray-500 mb-1">Protein (g)</label>
+                                              <input
+                                                type="number"
+                                                name="protein"
+                                                value={editingItem?.nutritionalInfo?.protein || 0}
+                                                onChange={handleEditNutritionalInfoChange}
+                                                className="w-full p-2 border border-gray-300 rounded-md"
+                                                min="0"
+                                              />
+                                            </div>
+                                            <div>
+                                              <label className="block text-xs text-gray-500 mb-1">Carbs (g)</label>
+                                              <input
+                                                type="number"
+                                                name="carbs"
+                                                value={editingItem?.nutritionalInfo?.carbs || 0}
+                                                onChange={handleEditNutritionalInfoChange}
+                                                className="w-full p-2 border border-gray-300 rounded-md"
+                                                min="0"
+                                              />
+                                            </div>
+                                            <div>
+                                              <label className="block text-xs text-gray-500 mb-1">Fat (g)</label>
+                                              <input
+                                                type="number"
+                                                name="fat"
+                                                value={editingItem?.nutritionalInfo?.fat || 0}
+                                                onChange={handleEditNutritionalInfoChange}
+                                                className="w-full p-2 border border-gray-300 rounded-md"
+                                                min="0"
+                                              />
+                                            </div>
+                                            <div>
+                                              <label className="block text-xs text-gray-500 mb-1">Fiber (g)</label>
+                                              <input
+                                                type="number"
+                                                name="fiber"
+                                                value={editingItem?.nutritionalInfo?.fiber || 0}
+                                                onChange={handleEditNutritionalInfoChange}
+                                                className="w-full p-2 border border-gray-300 rounded-md"
+                                                min="0"
+                                              />
+                                            </div>
+                                          </div>
+                                        </div>
+                                        <div className="md:col-span-2 flex justify-end space-x-2">
+                                          <button
+                                            onClick={handleCancelEdit}
+                                            className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+                                          >
+                                            Cancel
+                                          </button>
+                                          <button
+                                            onClick={handleSaveItem}
+                                            className="px-3 py-1.5 bg-[#7D9D74] text-white rounded-md hover:bg-[#5D7D54]"
+                                          >
+                                            <Save className="w-4 h-4 mr-1 inline-block" />
+                                            Save Changes
+                                          </button>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      /* Item Display */
+                                      <div className="flex items-center justify-between">
+                                        <div className="flex items-center">
+                                          <img 
+                                            src={item.image} 
+                                            alt={item.name}
+                                            className="w-14 h-14 rounded-md object-cover mr-4" 
+                                          />
+                                          <div>
+                                            <h4 className="font-medium">{item.name}</h4>
+                                            <p className="text-sm text-gray-600">${item.price.toFixed(2)}</p>
+                                            {item.description && (
+                                              <p className="text-sm text-gray-500 mt-1">{item.description}</p>
+                                            )}
+                                          </div>
+                                        </div>
+                                        <div className="flex space-x-2">
+                                          <button
+                                            onClick={() => handleEditItem(item)}
+                                            className="p-1.5 bg-blue-50 text-blue-600 rounded hover:bg-blue-100"
+                                            title="Edit item"
+                                          >
+                                            <Edit className="w-4 h-4" />
+                                          </button>
+                                          <button
+                                            onClick={() => handleDeleteItem(item.id)}
+                                            className="p-1.5 bg-red-50 text-red-600 rounded hover:bg-red-100"
+                                            title="Delete item"
+                                          >
+                                            <Trash2 className="w-4 h-4" />
+                                          </button>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        }).filter(Boolean)
+                    ) : (
+                      <div className="text-center py-12 border border-gray-200 rounded-lg">
+                        <p className="text-gray-500">No items match your search criteria.</p>
+                        <button 
+                          onClick={resetFilters}
+                          className="mt-2 text-[#7D9D74] hover:text-[#5D7D54] font-medium"
+                        >
+                          Reset Filters
+                        </button>
                       </div>
-                    ))}
+                    )}
                   </div>
                 </div>
               ) : (
@@ -1706,7 +1925,7 @@ const AdminMenuPage: React.FC = () => {
                             >
                               <Download className="w-4 h-4 mr-1" />
                               Download Template
-                            </button>
+                </button>
                           </div>
                         </div>
               </div>

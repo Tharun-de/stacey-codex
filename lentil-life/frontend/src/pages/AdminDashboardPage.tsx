@@ -10,7 +10,7 @@ import {
   Calendar,
   Package
 } from 'lucide-react';
-import { API_URL } from '../App';
+import { API_URL } from '../config';
 import AdminSidebar from '../components/AdminSidebar';
 
 interface OrderItem {

@@ -56,6 +56,11 @@ npm run dev
 ```
 
 The frontend should now be running at http://localhost:5173 and the backend at http://localhost:4000.
+If your backend runs on a different URL, create a `.env` file inside `frontend` with:
+
+```
+VITE_API_URL=http://your-backend-domain/api
+```
 
 ## Features
 

@@ -1,8 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { loadStripe, Stripe } from '@stripe/stripe-js';
 import axios, { AxiosError } from 'axios';
-
-const API_URL = 'http://localhost:4000/api';
+import { API_URL } from '../config';
 
 interface PaymentConfig {
   stripePublishableKey: string;

@@ -3,6 +3,7 @@ import { Helmet } from 'react-helmet-async';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { MapPin, Gift, Eye, EyeOff, CheckCircle, AlertCircle } from 'lucide-react';
+import { API_URL } from '../config';
 
 // Types for the component
 interface LocationData {
@@ -104,7 +105,7 @@ const SignupPage: React.FC = () => {
 
     setPromoStatus('validating');
     try {
-      const response = await fetch('http://localhost:4000/api/auth/validate-promo-public', {
+      const response = await fetch(`${API_URL}/auth/validate-promo-public`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

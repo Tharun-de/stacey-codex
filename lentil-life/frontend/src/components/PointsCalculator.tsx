@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Star, Info } from 'lucide-react';
+import { API_URL } from '../config';
 
 interface PointsCalculatorProps {
   orderAmount: number;
@@ -33,7 +34,7 @@ const PointsCalculator: React.FC<PointsCalculatorProps> = ({
 
   const fetchPointsConfig = async () => {
     try {
-      const response = await fetch('http://localhost:4000/api/points/config');
+      const response = await fetch(`${API_URL}/points/config`);
       const data = await response.json();
       
       if (data.success) {
@@ -48,7 +49,7 @@ const PointsCalculator: React.FC<PointsCalculatorProps> = ({
 
   const calculatePoints = async () => {
     try {
-      const response = await fetch(`http://localhost:4000/api/points/calculate?amount=${orderAmount}`);
+      const response = await fetch(`${API_URL}/points/calculate?amount=${orderAmount}`);
       const data = await response.json();
       
       if (data.success) {

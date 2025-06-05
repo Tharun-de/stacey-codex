@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import Hero from '../components/Hero';
 import { Link } from 'react-router-dom';
-import { API_URL } from '../App';
+import { API_URL } from '../config';
 import { MenuItem } from '../types';
 
 const HomePage: React.FC = () => {

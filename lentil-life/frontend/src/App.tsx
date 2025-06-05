@@ -26,9 +26,7 @@ import AdminDashboardPage from './pages/AdminDashboardPage';
 import AdminPaymentSettingsPage from './pages/AdminPaymentSettingsPage.tsx';
 import NotFoundPage from './pages/NotFoundPage';
 import PrivateRoute from './components/PrivateRoute';
-
-// Define API URL for use throughout the app
-export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
+import { API_URL } from './config';
 
 function App() {
   // Initially, user is not scrolled, so promo banner space is visible.

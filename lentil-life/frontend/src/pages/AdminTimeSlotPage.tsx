@@ -13,7 +13,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { API_URL } from '../App';
+import { API_URL } from '../config';
 
 interface TimeSlot {
   id: string;

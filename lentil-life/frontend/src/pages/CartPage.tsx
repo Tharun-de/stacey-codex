@@ -3,7 +3,7 @@ import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import { Trash2, Plus, Minus, ArrowLeft, Check } from 'lucide-react';
 import { useCart } from '../context/CartContext';
-import { API_URL } from '../App';
+import { API_URL } from '../config';
 import PickupTimeSelector from '../components/PickupTimeSelector';
 import PointsCalculator from '../components/PointsCalculator';
 

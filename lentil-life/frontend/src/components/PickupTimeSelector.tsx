@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, AlertCircle } from 'lucide-react';
-import { API_URL } from '../App';
+import { API_URL } from '../config';
 
 interface TimeSlot {
   id: string;

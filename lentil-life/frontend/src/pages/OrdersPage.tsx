@@ -3,6 +3,7 @@ import { Helmet } from 'react-helmet-async';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Package, Clock, CheckCircle, XCircle, Calendar, DollarSign } from 'lucide-react';
+import { API_URL } from '../config';
 
 interface Order {
   id: string;
@@ -41,7 +42,7 @@ const OrdersPage: React.FC = () => {
 
   const fetchOrders = async () => {
     try {
-      const response = await fetch('http://localhost:4000/api/orders', {
+      const response = await fetch(`${API_URL}/orders`, {
         credentials: 'include',
       });
 

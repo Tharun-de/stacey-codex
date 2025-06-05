@@ -43,6 +43,11 @@ cd backend
 npm run dev
 ```
 This will start the backend server on http://localhost:4000
+The frontend expects the backend URL in `frontend/.env`. If you use a different URL, set:
+
+```
+VITE_API_URL=http://your-backend-domain/api
+```
 
 ### Method 2: Using Concurrently (Optional)
 

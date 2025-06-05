@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Star, Gift, Clock, TrendingUp, Award } from 'lucide-react';
+import { API_URL } from '../config';
 
 interface PointsTransaction {
   id: string;
@@ -53,7 +54,7 @@ const PointsDisplay: React.FC<PointsDisplayProps> = ({
 
   const fetchUserPoints = async () => {
     try {
-      const response = await fetch(`http://localhost:4000/api/points/user/${userId}`);
+      const response = await fetch(`${API_URL}/points/user/${userId}`);
       const data = await response.json();
       
       if (data.success) {
@@ -69,7 +70,7 @@ const PointsDisplay: React.FC<PointsDisplayProps> = ({
 
   const fetchPointsHistory = async () => {
     try {
-      const response = await fetch(`http://localhost:4000/api/points/user/${userId}/history?limit=10`);
+      const response = await fetch(`${API_URL}/points/user/${userId}/history?limit=10`);
       const data = await response.json();
       
       if (data.success) {
@@ -82,7 +83,7 @@ const PointsDisplay: React.FC<PointsDisplayProps> = ({
 
   const fetchPointsConfig = async () => {
     try {
-      const response = await fetch('http://localhost:4000/api/points/config');
+      const response = await fetch(`${API_URL}/points/config`);
       const data = await response.json();
       
       if (data.success) {

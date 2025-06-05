@@ -4,7 +4,7 @@ import { Helmet } from 'react-helmet-async';
 import { ArrowLeft, Plus, Minus, ChevronDown, ChevronUp, Star } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { MenuItem } from '../types';
-import { API_URL } from '../App';
+import { API_URL } from '../config';
 
 const ProductPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();

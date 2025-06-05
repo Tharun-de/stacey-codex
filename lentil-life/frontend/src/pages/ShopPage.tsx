@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 // import { menuItems } from '../data/menuData';
 import { MenuItem as MenuItemType } from '../types';
 import AddToCartButton from '../components/AddToCartButton';
-import { API_URL } from '../App';
+import { API_URL } from '../config';
 
 // Define API URL
 // const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000/api';

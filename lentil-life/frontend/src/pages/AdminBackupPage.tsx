@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { API_URL } from '../App';
+import { API_URL } from '../config';
 
 interface Backup {
   id: string;

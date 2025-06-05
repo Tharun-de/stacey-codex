@@ -20,7 +20,7 @@ import {
   ShoppingBag
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { API_URL } from '../App';
+import { API_URL } from '../config';
 import { resizeImageBeforeUpload } from '../utils/imageService';
 import OptimizedImage from '../components/OptimizedImage';
 

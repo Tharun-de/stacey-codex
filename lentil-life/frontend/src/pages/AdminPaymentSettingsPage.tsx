@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Save, AlertCircle, RefreshCw, Image as ImageIcon, AtSign } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { API_URL } from '../App';
+import { API_URL } from '../config';
 import AdminSidebar from '../components/AdminSidebar';
 
 interface PaymentSettings {

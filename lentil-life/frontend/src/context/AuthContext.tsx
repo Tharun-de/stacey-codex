@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { API_URL } from '../config';
 
 // Types
 interface User {
@@ -94,9 +95,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isLoading, setIsLoading] = useState(true);
 
   // API base URL
-  const API_BASE = process.env.NODE_ENV === 'production' 
-    ? 'https://your-domain.com/api' 
-    : 'http://localhost:4000/api';
+  const API_BASE = API_URL;
 
   // Check for existing session on app load
   useEffect(() => {

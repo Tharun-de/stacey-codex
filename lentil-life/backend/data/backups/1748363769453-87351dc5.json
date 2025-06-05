@@ -1,0 +1,154 @@
+{
+  "timestamp": "2025-05-27T16:36:09.455Z",
+  "data": {
+    "items": [
+      {
+        "id": 1,
+        "name": "Mediterranean Delight",
+        "description": "A fresh blend of hummus, falafel, mixed greens, tomatoes, cucumbers, and tahini sauce.",
+        "price": 9.95,
+        "image": "https://images.pexels.com/photos/2955819/pexels-photo-2955819.jpeg",
+        "category": "lunch",
+        "dietaryInfo": {
+          "vegan": true,
+          "vegetarian": true,
+          "glutenFree": true,
+          "dairyFree": true
+        },
+        "nutritionalInfo": {
+          "calories": 420,
+          "protein": 15,
+          "carbs": 48,
+          "fat": 18,
+          "fiber": 12
+        },
+        "ingredients": [
+          "Whole wheat wrap",
+          "Hummus",
+          "Falafel",
+          "Mixed greens",
+          "Tomatoes",
+          "Cucumbers",
+          "Tahini sauce"
+        ]
+      },
+      {
+        "id": 2,
+        "name": "Avocado Ranch Chicken",
+        "description": "Grilled chicken, avocado, lettuce, tomato, and ranch dressing in a spinach wrap.",
+        "price": 10.95,
+        "image": "https://images.pexels.com/photos/4145365/pexels-photo-4145365.jpeg",
+        "category": "lunch",
+        "dietaryInfo": {
+          "vegan": false,
+          "vegetarian": false,
+          "glutenFree": false,
+          "dairyFree": false
+        },
+        "nutritionalInfo": {
+          "calories": 550,
+          "protein": 32,
+          "carbs": 42,
+          "fat": 28,
+          "fiber": 8
+        },
+        "ingredients": [
+          "Spinach wrap",
+          "Grilled chicken",
+          "Avocado",
+          "Lettuce",
+          "Tomato",
+          "Ranch dressing"
+        ]
+      },
+      {
+        "id": 3,
+        "name": "Quinoa Power Bowl",
+        "description": "Protein-packed quinoa, black beans, roasted sweet potatoes, kale, and avocado with cilantro lime dressing.",
+        "price": 11.95,
+        "image": "https://images.pexels.com/photos/5966431/pexels-photo-5966431.jpeg",
+        "category": "lunch",
+        "dietaryInfo": {
+          "vegan": true,
+          "vegetarian": true,
+          "glutenFree": true,
+          "dairyFree": true
+        },
+        "nutritionalInfo": {
+          "calories": 480,
+          "protein": 18,
+          "carbs": 62,
+          "fat": 20,
+          "fiber": 15
+        },
+        "ingredients": [
+          "Quinoa",
+          "Black beans",
+          "Roasted sweet potatoes",
+          "Kale",
+          "Avocado",
+          "Cilantro lime dressing"
+        ]
+      },
+      {
+        "id": 4,
+        "name": "Berry Protein Smoothie Bowl",
+        "description": "Mixed berries, banana, plant protein, topped with granola, coconut flakes, and chia seeds.",
+        "price": 8.95,
+        "image": "https://images.pexels.com/photos/1099680/pexels-photo-1099680.jpeg",
+        "category": "breakfast",
+        "dietaryInfo": {
+          "vegan": true,
+          "vegetarian": true,
+          "glutenFree": true,
+          "dairyFree": true
+        },
+        "nutritionalInfo": {
+          "calories": 380,
+          "protein": 22,
+          "carbs": 52,
+          "fat": 12,
+          "fiber": 10
+        },
+        "ingredients": [
+          "Mixed berries",
+          "Banana",
+          "Plant protein",
+          "Granola",
+          "Coconut flakes",
+          "Chia seeds"
+        ]
+      },
+      {
+        "id": 5,
+        "name": "Spicy Southwest",
+        "description": "Black beans, corn, brown rice, bell peppers, and avocado with chipotle sauce.",
+        "price": 9.95,
+        "image": "https://images.pexels.com/photos/8448323/pexels-photo-8448323.jpeg",
+        "category": "lunch",
+        "dietaryInfo": {
+          "vegan": true,
+          "vegetarian": true,
+          "glutenFree": true,
+          "dairyFree": true
+        },
+        "nutritionalInfo": {
+          "calories": 520,
+          "protein": 16,
+          "carbs": 68,
+          "fat": 22,
+          "fiber": 14
+        },
+        "ingredients": [
+          "Whole grain wrap",
+          "Black beans",
+          "Corn",
+          "Brown rice",
+          "Bell peppers",
+          "Avocado",
+          "Chipotle sauce"
+        ]
+      }
+    ]
+  }
+}

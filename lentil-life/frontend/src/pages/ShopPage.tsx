@@ -10,6 +10,30 @@ import { API_URL } from '../App';
 // Define API URL
 // const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000/api';
 
+// Interface for API response
+interface APIMenuItem {
+  id: number;
+  name: string;
+  description: string;
+  price: number;
+  image_url: string;
+  category: string;
+  dietary_info?: {
+    vegan?: boolean;
+    vegetarian?: boolean;
+    glutenFree?: boolean;
+    dairyFree?: boolean;
+  };
+  nutritional_info?: {
+    calories?: number;
+    protein?: number;
+    carbs?: number;
+    fat?: number;
+    fiber?: number;
+  };
+  ingredients?: string | string[];
+}
+
 const ShopPage = () => {
   const [filters, setFilters] = useState({
     vegan: false,
@@ -33,7 +57,31 @@ const ShopPage = () => {
         const data = await response.json();
         
         if (data.success) {
-          setMenuItems(data.items);
+          // Transform API data to match frontend types
+          const transformedItems = data.items.map((item: APIMenuItem) => ({
+            id: item.id,
+            name: item.name,
+            description: item.description,
+            price: item.price,
+            image: item.image_url, // Transform image_url to image
+            category: item.category,
+            dietaryInfo: {
+              vegan: item.dietary_info?.vegan || false,
+              vegetarian: item.dietary_info?.vegetarian || false,
+              glutenFree: item.dietary_info?.glutenFree || false,
+              dairyFree: item.dietary_info?.dairyFree || false
+            },
+            nutritionalInfo: {
+              calories: item.nutritional_info?.calories || 0,
+              protein: item.nutritional_info?.protein || 0,
+              carbs: item.nutritional_info?.carbs || 0,
+              fat: item.nutritional_info?.fat || 0,
+              fiber: item.nutritional_info?.fiber || 0
+            },
+            ingredients: Array.isArray(item.ingredients) ? item.ingredients : [item.ingredients || '']
+          }));
+          
+          setMenuItems(transformedItems);
           setLoading(false);
         } else {
           setError('Failed to load menu items');

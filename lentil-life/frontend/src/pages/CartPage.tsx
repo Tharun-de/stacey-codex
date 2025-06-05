@@ -5,6 +5,7 @@ import { Trash2, Plus, Minus, ArrowLeft, Check } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { API_URL } from '../App';
 import PickupTimeSelector from '../components/PickupTimeSelector';
+import PointsCalculator from '../components/PointsCalculator';
 
 // Custom basket icon component that matches the minimalist Mast Market design
 const BasketIcon = ({ className = "" }: { className?: string }) => (
@@ -20,10 +21,13 @@ interface PaymentSettings {
   venmoQRCodeUrl?: string;
 }
 
+type PaymentMethod = 'venmo' | 'cash';
+
 const CartPage: React.FC = () => {
   const { items, updateQuantity, removeItem, totalItems, totalPrice, clearCart } = useCart();
   const [specialInstructions, setSpecialInstructions] = useState('');
   const [checkoutStep, setCheckoutStep] = useState<'cart' | 'details' | 'confirmation'>('cart');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod>('venmo');
   const [orderDetails, setOrderDetails] = useState({
     name: '',
     email: '',
@@ -76,20 +80,34 @@ const CartPage: React.FC = () => {
   };
   
   const handlePickupTimeChange = (time: string) => {
+    console.log('handlePickupTimeChange called with:', time);
     setOrderDetails({ ...orderDetails, pickupTime: time });
   };
   
-  const handleSubmitOrder = async (e: React.FormEvent) => {
+  const handleSubmitOrder = async (e: React.FormEvent | React.MouseEvent<HTMLButtonElement>) => {
+    console.log('handleSubmitOrder called. Event type:', e.type);
     e.preventDefault();
     
     if (items.length === 0) {
       setOrderError('Your cart is empty');
       return;
     }
+
+    // Explicitly check if pickup time is selected, as a safeguard
+    if (!orderDetails.pickupTime) {
+      setOrderError('Please select a pickup time.');
+      setIsSubmitting(false); // Ensure isSubmitting is reset if it was true
+      return;
+    }
     
     setIsSubmitting(true);
     setOrderError('');
     
+    let orderStatusForSubmit: string = 'Pending Venmo Payment';
+    if (selectedPaymentMethod === 'cash') {
+      orderStatusForSubmit = 'Pending Cash Payment';
+    }
+
     try {
       // Prepare order data
       const orderData = {
@@ -111,7 +129,7 @@ const CartPage: React.FC = () => {
         })),
         specialInstructions: specialInstructions,
         total: totalPrice,
-        orderStatus: 'Pending Venmo Payment'
+        orderStatus: orderStatusForSubmit
       };
       
       // Send order to API
@@ -252,9 +270,13 @@ const CartPage: React.FC = () => {
             <div className="flex justify-between text-lg">
               <span>Total</span>
               <span>${totalPrice.toFixed(2)}</span>
-                </div>
-              </div>
-              
+            </div>
+            {/* Points Calculator */}
+            <div className="pt-3 border-t border-gray-100">
+              <PointsCalculator orderAmount={totalPrice} />
+            </div>
+          </div>
+          
           <div className="mt-8 flex items-center justify-between">
             <button
               onClick={() => clearCart()}
@@ -285,207 +307,237 @@ const CartPage: React.FC = () => {
           <ArrowLeft className="w-4 h-4 mr-1" />
           Back to cart
         </button>
-      </div>
-      
-      <h1 className="text-3xl font-light mb-8 text-center">Order Details</h1>
+                    </div>
+                    
+      <h1 className="text-3xl font-light mb-8 text-center">Checkout Details</h1>
       
       {orderError && (
         <div className="bg-red-50 border border-red-100 text-red-700 px-4 py-3 rounded mb-6">
           {orderError}
-        </div>
-      )}
-      
-      <form onSubmit={handleSubmitOrder} className="space-y-6">
-        <div>
-          <label htmlFor="name" className="block text-sm uppercase tracking-wide font-light mb-2">
-            Name*
-          </label>
-          <input
-            type="text"
-            id="name"
-            name="name"
-            value={orderDetails.name}
-            onChange={handleInputChange}
-            required
-            className="w-full p-3 border border-gray-300 font-light"
-          />
-        </div>
-        
-        <div>
-          <label htmlFor="email" className="block text-sm uppercase tracking-wide font-light mb-2">
-            Email*
-          </label>
-          <input
-            type="email"
-            id="email"
-            name="email"
-            value={orderDetails.email}
-            onChange={handleInputChange}
-            required
-            className="w-full p-3 border border-gray-300 font-light"
-          />
-        </div>
-        
-        <div>
-          <label htmlFor="phone" className="block text-sm uppercase tracking-wide font-light mb-2">
-            Phone*
-          </label>
-          <input
-            type="tel"
-            id="phone"
-            name="phone"
-            value={orderDetails.phone}
-            onChange={handleInputChange}
-            required
-            className="w-full p-3 border border-gray-300 font-light"
-          />
+                      </div>
+                    )}
+                    
+      <div className="space-y-8">
+        <div className="bg-white p-6 shadow rounded-md">
+          <h2 className="text-xl font-light mb-6">Your Information</h2>
+          <div>
+            <label htmlFor="name" className="block text-sm uppercase tracking-wide font-light mb-2">
+              Name*
+            </label>
+            <input
+              type="text"
+              id="name"
+              name="name"
+              value={orderDetails.name}
+              onChange={handleInputChange}
+              required
+              className="w-full p-3 border border-gray-300 font-light"
+            />
+          </div>
+          
+          <div>
+            <label htmlFor="email" className="block text-sm uppercase tracking-wide font-light mb-2">
+              Email*
+            </label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              value={orderDetails.email}
+              onChange={handleInputChange}
+              required
+              className="w-full p-3 border border-gray-300 font-light"
+            />
+          </div>
+          
+          <div>
+            <label htmlFor="phone" className="block text-sm uppercase tracking-wide font-light mb-2">
+              Phone*
+            </label>
+            <input
+              type="tel"
+              id="phone"
+              name="phone"
+              value={orderDetails.phone}
+              onChange={handleInputChange}
+              required
+              className="w-full p-3 border border-gray-300 font-light"
+            />
+          </div>
                     </div>
                     
-        <div className="mb-6">
-          <h3 className="text-lg font-light mb-4">Pickup Information</h3>
-          
-          <PickupTimeSelector
+        <div className="bg-white p-6 shadow rounded-md">
+          <h2 className="text-xl font-light mb-6">Select Pickup Time</h2>
+          <PickupTimeSelector 
             selectedDate={orderDetails.pickupDate}
             selectedTime={orderDetails.pickupTime}
             onSelectDate={handlePickupDateChange}
             onSelectTime={handlePickupTimeChange}
           />
-                      </div>
+                    </div>
                     
-        <div className="bg-gray-50 p-6 rounded-lg mb-6 border border-gray-200">
-          <h3 className="text-xl font-medium text-gray-800 mb-4">Payment Instructions: Venmo</h3>
-          {paymentSettingsLoading && <p className="text-gray-600">Loading Venmo details...</p>}
-          {paymentSettingsError && (
-            <p className="text-red-600 bg-red-50 p-3 rounded-md">
-              Error loading Venmo details: {paymentSettingsError}. Please try refreshing. If the issue persists, contact support.
-            </p>
-          )}
-          {paymentSettings && (
-            <div className="space-y-4">
-              <div>
-                <p className="text-gray-700">
-                  Please send <strong className="font-semibold text-green-700">${totalPrice.toFixed(2)}</strong> to Venmo user:
-                </p>
-                <p className="text-2xl font-bold text-green-600 my-1">
-                  {paymentSettings.venmoUsername || '[Admin Venmo Username]'}
-                </p>
-                {!paymentSettings.venmoUsername && (
-                  <p className="text-xs text-yellow-700 bg-yellow-100 p-2 rounded-md">
-                    The Venmo username is not configured yet. Please check back or contact support.
-                  </p>
-                )}
-              </div>
-              
-              {paymentSettings.venmoQRCodeUrl && (
-                <div>
-                  <p className="text-gray-700 mb-2">Or scan the QR code:</p>
-                  <img 
-                    src={paymentSettings.venmoQRCodeUrl} 
-                    alt="Venmo QR Code" 
-                    className="w-40 h-40 border-2 border-gray-300 rounded-md shadow-sm bg-white p-1"
-                  />
-                </div>
-              )}
-              {!paymentSettings.venmoQRCodeUrl && paymentSettings.venmoUsername && (
-                  <p className="text-sm text-gray-500">(QR code is not available yet. Please use the username above.)</p>
-              )}
-
-              <div className="bg-blue-50 border border-blue-200 text-blue-700 p-3 rounded-md text-sm">
-                <strong className="font-semibold">Important:</strong> Your order will be processed once we manually confirm your Venmo payment. You will receive an email update after confirmation.
-              </div>
+        <div className="bg-white p-6 shadow rounded-md">
+          <h2 className="text-xl font-light mb-6">Payment Method</h2>
+          <div className="space-y-4">
+            <div>
+              <label className="flex items-center space-x-3 p-4 border rounded-md hover:bg-gray-50 cursor-pointer">
+                <input 
+                  type="radio" 
+                  name="paymentMethod"
+                  value="venmo"
+                  checked={selectedPaymentMethod === 'venmo'}
+                  onChange={() => setSelectedPaymentMethod('venmo')}
+                  className="form-radio h-5 w-5 text-[#7D9D74] focus:ring-[#7D9D74]"
+                />
+                <span className="font-light">Pay with Venmo (Manual)</span>
+              </label>
             </div>
-          )}
+            <div>
+              <label className="flex items-center space-x-3 p-4 border rounded-md hover:bg-gray-50 cursor-pointer">
+                <input 
+                  type="radio" 
+                  name="paymentMethod"
+                  value="cash"
+                  checked={selectedPaymentMethod === 'cash'}
+                  onChange={() => setSelectedPaymentMethod('cash')}
+                  className="form-radio h-5 w-5 text-[#7D9D74] focus:ring-[#7D9D74]"
+                />
+                <span className="font-light">Cash</span>
+              </label>
+                      </div>
                     </div>
-                    
-        <div>
-          <label htmlFor="specialInstructions" className="block text-sm uppercase tracking-wide font-light mb-2">
-            Special Instructions
-          </label>
-          <textarea
-            id="specialInstructions"
-            value={specialInstructions}
-            onChange={(e) => setSpecialInstructions(e.target.value)}
-            rows={3}
-            className="w-full p-3 border border-gray-300 font-light"
-          />
-                    </div>
-                    
+                  </div>
+                  
+        {selectedPaymentMethod === 'venmo' && (
+          <div className="bg-white p-6 shadow rounded-md">
+            <h2 className="text-xl font-light mb-6">Complete Your Order via Venmo</h2>
+            {paymentSettingsLoading && <p>Loading Venmo details...</p>}
+            {paymentSettingsError && <p className="text-red-500">Error: {paymentSettingsError}</p>}
+            {paymentSettings && (
+              <div className="space-y-4">
+                <p className="font-light">
+                  Please send <strong className="font-medium">${totalPrice.toFixed(2)}</strong> to our Venmo:
+                </p>
+                <p className="text-2xl font-semibold text-[#7D9D74]">
+                  @{paymentSettings.venmoUsername}
+                </p>
+                {paymentSettings.venmoQRCodeUrl && (
+                  <div className="my-4">
+                    <p className="font-light mb-2">Or scan our QR code:</p>
+                    <img 
+                      src={paymentSettings.venmoQRCodeUrl} 
+                      alt="Venmo QR Code" 
+                      className="w-48 h-48 object-contain border p-1 rounded-md"
+                    />
+                  </div>
+                )}
+                <p className="text-sm text-gray-600 font-light">
+                  After sending payment, please click "Place Order". We will verify your payment manually and update your order status.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {selectedPaymentMethod === 'cash' && (
+           <div className="bg-white p-6 shadow rounded-md">
+            <h2 className="text-xl font-light mb-6">Complete Your Order with Cash</h2>
+            <p className="font-light">
+              You have selected to pay with cash upon pickup. Please ensure you have <strong className="font-medium">${totalPrice.toFixed(2)}</strong> ready when you collect your order.
+            </p>
+            <p className="text-sm text-gray-600 font-light mt-2">
+              Click "Place Order" to confirm.
+            </p>
+          </div>
+        )}
+
         <div className="border-t border-gray-200 pt-6 mt-8 flex justify-between items-center">
           <div>
             <p className="text-lg font-light">Total: ${totalPrice.toFixed(2)}</p>
             <p className="text-sm text-gray-500 font-light">{totalItems} item(s)</p>
-                  </div>
-                  
+          </div>
+          
                       <button
-            type="submit"
+            type="button"
+            onClick={(e) => {
+              console.log('Place Order button clicked');
+              handleSubmitOrder(e);
+            }}
             disabled={!isDetailsComplete || isSubmitting}
             className="w-full py-3 bg-black text-white text-sm uppercase tracking-wide font-light hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
+          >
             {isSubmitting ? 'Processing...' : 'Place Order'}
                       </button>
                     </div>
-      </form>
+                  </div>
     </>
   );
 
-  const renderConfirmationStep = () => (
-    <>
-      <div className="text-center py-16">
-        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-          <Check className="w-8 h-8 text-green-600" />
-                  </div>
-                  
-        <h2 className="text-2xl font-light mb-4">Order Placed! Awaiting Payment Confirmation</h2>
-        
-        {orderConfirmation && (
-          <>
-            <p className="text-gray-700 mb-2 font-light">
-              Your order <strong className="font-semibold">#{orderConfirmation.orderId}</strong> has been successfully submitted.
+  const renderConfirmationStep = () => {
+    if (!orderConfirmation) return null;
+
+    const isVenmoOrder = selectedPaymentMethod === 'venmo';
+
+    return (
+      <div className="text-center py-16 max-w-xl mx-auto">
+        <Check className="w-16 h-16 mx-auto mb-6 text-green-500 p-2 bg-green-50 rounded-full" />
+        <h1 className="text-3xl font-light mb-4">Thank You For Your Order!</h1>
+        <p className="text-gray-700 font-light mb-2">
+          Your order <strong className="font-medium">#{orderConfirmation.orderId}</strong> has been placed successfully.
+        </p>
+        <p className="text-gray-700 font-light mb-6">
+          Total amount: <strong className="font-medium">${orderConfirmation.total.toFixed(2)}</strong>
+        </p>
+
+        {isVenmoOrder && paymentSettings && (
+          <div className="bg-blue-50 border border-blue-200 p-6 rounded-md mb-8 text-left space-y-3">
+            <h2 className="text-xl font-semibold text-blue-700 mb-3">Important: Complete Your Venmo Payment</h2>
+            <p className="text-sm text-blue-600 font-light">
+              Your order status is currently <strong className="font-medium">Pending Venmo Payment</strong>.
             </p>
-            <p className="text-gray-700 mb-1 font-light">
-              Total: <strong className="font-semibold">${orderConfirmation.total.toFixed(2)}</strong>
+            <p className="text-sm text-blue-600 font-light">
+              To finalize your order, please ensure you have sent <strong className="font-medium">${orderConfirmation.total.toFixed(2)}</strong> to our Venmo account:
             </p>
-          </>
+            <p className="text-xl font-bold text-blue-700">
+              @{paymentSettings.venmoUsername}
+            </p>
+            {paymentSettings.venmoQRCodeUrl && (
+              <div className="my-3">
+                <p className="text-sm text-blue-600 font-light mb-1">Or scan the QR code again:</p>
+                <img src={paymentSettings.venmoQRCodeUrl} alt="Venmo QR Code" className="w-32 h-32 object-contain border p-1 rounded-md"/>
+              </div>
+            )}
+            <p className="text-sm text-blue-600 font-light">
+              We will verify your payment and update your order status soon. You will receive an email once confirmed (if email notifications are set up).
+            </p>
+            </div>
         )}
 
-        <div className="bg-blue-50 border border-blue-200 text-blue-800 p-6 rounded-lg my-6 max-w-md mx-auto text-left space-y-3">
-          <h3 className="text-lg font-semibold text-blue-900">Action Required: Complete Your Venmo Payment</h3>
-          {paymentSettings && paymentSettings.venmoUsername && (
-            <p className="font-light">
-              Please send <strong className="font-semibold">${orderConfirmation?.total.toFixed(2) || totalPrice.toFixed(2)}</strong> to Venmo user: 
-              <strong className="text-green-600 font-bold text-xl block my-1">{paymentSettings.venmoUsername}</strong>
+        {!isVenmoOrder && (
+          <div className="bg-green-50 border border-green-200 p-6 rounded-md mb-8 text-left space-y-3">
+            <h2 className="text-xl font-semibold text-green-700 mb-3">Payment on Pickup</h2>
+            <p className="text-sm text-green-600 font-light">
+              Your order status is currently <strong className="font-medium">Pending Cash Payment</strong>.
             </p>
-          )}
-          {paymentSettings && paymentSettings.venmoQRCodeUrl && (
-            <div className="my-3 text-center">
-              <p className="font-light mb-2">Or scan the QR code:</p>
-              <img src={paymentSettings.venmoQRCodeUrl} alt="Venmo QR Code" className="w-36 h-36 border-2 border-gray-300 rounded-md shadow-sm bg-white p-1 mx-auto" />
-            </div>
-          )}
-          {!paymentSettingsLoading && (!paymentSettings || !paymentSettings.venmoUsername) && (
-            <p className="font-light text-yellow-700 bg-yellow-100 p-2 rounded-md">
-              Venmo details are currently unavailable. Please contact us to complete your payment.
+            <p className="text-sm text-green-600 font-light">
+              Please remember to bring <strong className="font-medium">${orderConfirmation.total.toFixed(2)}</strong> in cash when you come to pick up your order.
             </p>
-          )}
-          <p className="font-light text-sm">
-            <strong className="font-semibold">Important:</strong> We will process your order once we manually confirm your payment. 
-            You'll receive an email update once confirmed and another when your order is ready for pickup.
-          </p>
               </div>
-        
-        <p className="text-gray-500 max-w-md mx-auto mb-8 font-light">
-          We've sent an initial confirmation to your email: <strong className="font-semibold">{orderDetails.email}</strong>. 
-        </p>
-        
+        )}
+
+        <p className="mb-2">You will receive an email confirmation shortly (if provided).</p>
+
+        <div className="mt-10">
               <Link
                 to="/shop"
-          className="inline-block px-6 py-3 border border-black text-sm uppercase tracking-wide font-light hover:bg-black hover:text-white transition-colors"
+            className="inline-block px-6 py-3 border border-black text-sm uppercase tracking-wide font-light hover:bg-black hover:text-white transition-colors"
               >
-          Continue Shopping
+            Continue Shopping
               </Link>
-            </div>
-    </>
-  );
+        </div>
+      </div>
+    );
+  };
 
   return (
     <>

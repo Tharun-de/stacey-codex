@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Link, useNavigate } from 'react-router-dom';
-// import { useAuth } from '../context/AuthContext'; // Assuming you might have/want an AuthContext
+import { useAuth } from '../context/AuthContext';
+import { AlertCircle } from 'lucide-react';
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
-  // const { login } = useAuth(); // Example if using AuthContext
+  const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -15,18 +16,16 @@ const LoginPage: React.FC = () => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
-    // Simulate API call for login
-    setTimeout(() => {
-      if (email === 'admin@lentil.life' && password === 'password123') {
-        // In a real app, you would call your auth context login function here
-        // await login(email, password);
-        console.log('Login successful (simulated)');
-        navigate('/admin'); // Redirect to admin dashboard on successful login
-      } else {
-        setError('Invalid email or password. (Hint: admin@lentil.life / password123 for demo)');
-      }
+    
+    try {
+      await signIn(email, password);
+      navigate('/'); // Redirect to home page on successful login
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Invalid email or password';
+      setError(errorMessage);
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -34,27 +33,30 @@ const LoginPage: React.FC = () => {
       <Helmet>
         <title>Login | Lentil Life</title>
       </Helmet>
-      <div className="min-h-[calc(100vh-200px)] flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-lg shadow-lg">
-          <div>
-            <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-              Admin Login
+      <div className="min-h-[calc(100vh-200px)] flex items-center justify-center bg-gradient-to-br from-green-50 to-emerald-100 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-lg shadow-xl">
+          <div className="text-center">
+            <h2 className="text-3xl font-bold text-gray-900">
+              Welcome Back
             </h2>
+            <p className="mt-2 text-gray-600">Sign in to your account</p>
           </div>
+          
           <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
             {error && (
               <div className="rounded-md bg-red-50 p-4">
                 <div className="flex">
+                  <AlertCircle className="h-5 w-5 text-red-400" />
                   <div className="ml-3">
                     <p className="text-sm font-medium text-red-700">{error}</p>
                   </div>
                 </div>
               </div>
             )}
-            <input type="hidden" name="remember" defaultValue="true" />
-            <div className="rounded-md shadow-sm -space-y-px">
+            
+            <div className="space-y-4">
               <div>
-                <label htmlFor="email-address" className="sr-only">
+                <label htmlFor="email-address" className="block text-sm font-medium text-gray-700">
                   Email address
                 </label>
                 <input
@@ -65,12 +67,13 @@ const LoginPage: React.FC = () => {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-green-500 focus:border-green-500 focus:z-10 sm:text-sm"
-                  placeholder="Email address"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+                  placeholder="Enter your email"
                 />
               </div>
+              
               <div>
-                <label htmlFor="password" className="sr-only">
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                   Password
                 </label>
                 <input
@@ -81,33 +84,44 @@ const LoginPage: React.FC = () => {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-green-500 focus:border-green-500 focus:z-10 sm:text-sm"
-                  placeholder="Password"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+                  placeholder="Enter your password"
                 />
               </div>
             </div>
-
-            {/* <div className="flex items-center justify-between">
-              <div className="text-sm">
-                <a href="#" className="font-medium text-green-600 hover:text-green-500">
-                  Forgot your password?
-                </a>
-              </div>
-            </div> */}
 
             <div>
               <button
                 type="submit"
                 disabled={isLoading}
-                className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
+                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
               >
-                {isLoading ? 'Signing in...' : 'Sign in'}
+                {isLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Signing in...
+                  </>
+                ) : (
+                  'Sign in'
+                )}
               </button>
             </div>
           </form>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Go back to <Link to="/" className="font-medium text-green-600 hover:text-green-500">Homepage</Link>
-          </p>
+          
+          <div className="text-center space-y-2">
+            <p className="text-sm text-gray-600">
+              Don't have an account?{' '}
+              <Link to="/signup" className="font-medium text-green-600 hover:text-green-500">
+                Sign up here
+              </Link>
+            </p>
+            <p className="text-sm text-gray-600">
+              Go back to{' '}
+              <Link to="/" className="font-medium text-green-600 hover:text-green-500">
+                Homepage
+              </Link>
+            </p>
+          </div>
         </div>
       </div>
     </>

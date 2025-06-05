@@ -36,6 +36,24 @@ const PickupTimeSelector: React.FC<PickupTimeSelectorProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
+  // Helper to parse YYYY-MM-DD string to local Date object components
+  const getLocalDateComponents = (dateStr: string): { year: number, month: number, day: number } => {
+    const parts = dateStr.split('-');
+    return {
+      year: parseInt(parts[0], 10),
+      month: parseInt(parts[1], 10) - 1, // JavaScript months are 0-indexed
+      day: parseInt(parts[2], 10)
+    };
+  };
+  
+  // Helper function to format a Date object to YYYY-MM-DD string based on local date parts
+  const formatDateToYyyyMmDd = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0'); // getMonth is 0-indexed
+    const day = date.getDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+  
   // Get available dates based on constraints
   useEffect(() => {
     const fetchTimeSlotConfig = async () => {
@@ -82,17 +100,12 @@ const PickupTimeSelector: React.FC<PickupTimeSelectorProps> = ({
       
       // Check if this day is available
       if (availableDays.includes(dayOfWeek)) {
-        const dateString = date.toISOString().split('T')[0];
+        const dateString = formatDateToYyyyMmDd(date);
         dates.push(dateString);
       }
     }
     
     setAvailableDates(dates);
-    
-    // Select first date if none selected and dates are available
-    if (!selectedDate && dates.length > 0) {
-      onSelectDate(dates[0]);
-    }
   };
   
   // Fetch available time slots when date changes
@@ -119,14 +132,6 @@ const PickupTimeSelector: React.FC<PickupTimeSelectorProps> = ({
               onSelectTime('');
             }
           }
-          
-          // Select first available time if none selected
-          if (!selectedTime && data.availableSlots.length > 0) {
-            const firstAvailable = data.availableSlots.find((slot: TimeSlot) => slot.isAvailable);
-            if (firstAvailable) {
-              onSelectTime(firstAvailable.startTime);
-            }
-          }
         } else {
           setError('Failed to load available time slots');
         }
@@ -148,7 +153,10 @@ const PickupTimeSelector: React.FC<PickupTimeSelectorProps> = ({
       month: 'long', 
       day: 'numeric' 
     };
-    return new Date(dateString).toLocaleDateString(undefined, options);
+    // Ensure dateString is treated as local time
+    const { year, month, day } = getLocalDateComponents(dateString);
+    const date = new Date(year, month, day);
+    return date.toLocaleDateString(undefined, options);
   };
   
   // Format time for display (10:00 AM - 11:00 AM)
@@ -165,17 +173,24 @@ const PickupTimeSelector: React.FC<PickupTimeSelectorProps> = ({
   };
   
   // Check if date is today
-  const isToday = (dateString: string) => {
-    const today = new Date().toISOString().split('T')[0];
-    return dateString === today;
+  const isToday = (dateStr: string) => {
+    const today = new Date(); // Current moment in local time
+    const dateComponents = getLocalDateComponents(dateStr);
+
+    return dateComponents.year === today.getFullYear() &&
+           dateComponents.month === today.getMonth() &&
+           dateComponents.day === today.getDate();
   };
   
   // Check if date is tomorrow
-  const isTomorrow = (dateString: string) => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowString = tomorrow.toISOString().split('T')[0];
-    return dateString === tomorrowString;
+  const isTomorrow = (dateStr: string) => {
+    const tomorrow = new Date(); // Current moment in local time
+    tomorrow.setDate(tomorrow.getDate() + 1); // Advance to tomorrow
+    const dateComponents = getLocalDateComponents(dateStr);
+    
+    return dateComponents.year === tomorrow.getFullYear() &&
+           dateComponents.month === tomorrow.getMonth() &&
+           dateComponents.day === tomorrow.getDate();
   };
   
   // Get day display (Today, Tomorrow, or day of week)
@@ -183,7 +198,9 @@ const PickupTimeSelector: React.FC<PickupTimeSelectorProps> = ({
     if (isToday(dateString)) return 'Today';
     if (isTomorrow(dateString)) return 'Tomorrow';
     
-    const date = new Date(dateString);
+    // Ensure dateString is treated as local time for weekday display
+    const { year, month, day } = getLocalDateComponents(dateString);
+    const date = new Date(year, month, day);
     return date.toLocaleDateString(undefined, { weekday: 'long' });
   };
   

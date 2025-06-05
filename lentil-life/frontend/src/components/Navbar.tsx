@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, User, LogOut } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
+import PointsDisplay from './PointsDisplay';
 
 interface NavbarProps {
   onPromoBannerVisibilityChange: (isVisible: boolean) => void;
@@ -19,7 +21,9 @@ const BasketIcon = ({ className = "" }: { className?: string }) => (
 const Navbar: React.FC<NavbarProps> = ({ onPromoBannerVisibilityChange }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const { totalItems } = useCart();
+  const { user, signOut, isLoading } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   
   // Handle scroll events
   useEffect(() => {
@@ -36,6 +40,15 @@ const Navbar: React.FC<NavbarProps> = ({ onPromoBannerVisibilityChange }) => {
   useEffect(() => {
     onPromoBannerVisibilityChange(!isScrolled);
   }, [isScrolled, onPromoBannerVisibilityChange]);
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      setShowUserMenu(false);
+    } catch (error) {
+      console.error('Sign out error:', error);
+    }
+  };
 
   return (
     <header className="w-full fixed z-50">
@@ -79,6 +92,66 @@ const Navbar: React.FC<NavbarProps> = ({ onPromoBannerVisibilityChange }) => {
           {/* Right Navigation - Desktop */}
           <div className="hidden md:flex items-center space-x-6">
             <NavLink to="/contact">Contact</NavLink>
+            
+            {/* Auth Section */}
+            {!isLoading && (
+              <>
+                {user ? (
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowUserMenu(!showUserMenu)}
+                      className="flex items-center space-x-2 text-sm uppercase tracking-wider font-light hover:opacity-70 transition-opacity"
+                    >
+                      <User className="h-4 w-4" />
+                      <span>{user.firstName}</span>
+                    </button>
+                    
+                    {showUserMenu && (
+                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
+                        <div className="px-4 py-2 text-sm text-gray-700 border-b">
+                          {user.firstName} {user.lastName}
+                        </div>
+                        <div className="px-4 py-2 border-b">
+                          <PointsDisplay userId={user.id} compact={true} showHistory={false} />
+                        </div>
+                        <Link
+                          to="/profile"
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          onClick={() => setShowUserMenu(false)}
+                        >
+                          Profile
+                        </Link>
+                        <Link
+                          to="/orders"
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          onClick={() => setShowUserMenu(false)}
+                        >
+                          My Orders
+                        </Link>
+                        <button
+                          onClick={handleSignOut}
+                          className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        >
+                          <LogOut className="inline h-4 w-4 mr-2" />
+                          Sign Out
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex items-center space-x-4">
+                    <NavLink to="/login">Login</NavLink>
+                    <Link
+                      to="/signup"
+                      className="bg-green-600 text-white px-4 py-2 rounded-md text-xs uppercase tracking-wider font-medium hover:bg-green-700 transition-colors"
+                    >
+                      Sign Up
+                    </Link>
+                  </div>
+                )}
+              </>
+            )}
+            
             <Link to="/cart" className="relative">
               <BasketIcon />
               {totalItems > 0 && (
@@ -90,7 +163,15 @@ const Navbar: React.FC<NavbarProps> = ({ onPromoBannerVisibilityChange }) => {
           </div>
           
           {/* Mobile right icons */}
-          <div className="md:hidden">
+          <div className="md:hidden flex items-center space-x-4">
+            {!isLoading && !user && (
+              <Link
+                to="/signup"
+                className="bg-green-600 text-white px-3 py-1 rounded-md text-xs uppercase tracking-wider font-medium"
+              >
+                Sign Up
+              </Link>
+            )}
             <Link to="/cart" className="relative">
               <BasketIcon />
               {totalItems > 0 && (
@@ -111,6 +192,37 @@ const Navbar: React.FC<NavbarProps> = ({ onPromoBannerVisibilityChange }) => {
               <MobileNavLink to="/shop" onClick={() => setMobileMenuOpen(false)}>Shop</MobileNavLink>
               <MobileNavLink to="/about" onClick={() => setMobileMenuOpen(false)}>About</MobileNavLink>
               <MobileNavLink to="/contact" onClick={() => setMobileMenuOpen(false)}>Contact</MobileNavLink>
+              
+              {/* Mobile Auth Links */}
+              {!isLoading && (
+                <>
+                  {user ? (
+                    <>
+                      <div className="border-t pt-3 mt-3">
+                        <div className="text-sm text-gray-600 mb-2">
+                          Welcome, {user.firstName}!
+                        </div>
+                        <MobileNavLink to="/profile" onClick={() => setMobileMenuOpen(false)}>Profile</MobileNavLink>
+                        <MobileNavLink to="/orders" onClick={() => setMobileMenuOpen(false)}>My Orders</MobileNavLink>
+                        <button
+                          onClick={() => {
+                            handleSignOut();
+                            setMobileMenuOpen(false);
+                          }}
+                          className="block w-full text-left py-2 text-sm uppercase tracking-wider font-light text-red-600"
+                        >
+                          Sign Out
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="border-t pt-3 mt-3 space-y-3">
+                      <MobileNavLink to="/login" onClick={() => setMobileMenuOpen(false)}>Login</MobileNavLink>
+                      <MobileNavLink to="/signup" onClick={() => setMobileMenuOpen(false)}>Sign Up</MobileNavLink>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           </div>
         </div>

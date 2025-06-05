@@ -1,58 +1,36 @@
 {
   "orders": [
     {
-      "id": "ORD-929857632",
+      "id": "ORD-189449758",
       "customer": {
-        "name": "test",
+        "name": "Test Customer",
         "email": "test@example.com",
-        "phone": "1231232322"
-      },
-      "pickup": {
-        "date": "2025-05-15",
-        "time": "18:59"
+        "phone": "1234567890"
       },
       "items": [
         {
-          "id": 4,
-          "name": "Berry Protein Smoothie Bowl",
-          "price": 8.95,
-          "quantity": 1
+          "id": "item1",
+          "name": "Lentil Wrap",
+          "price": 8.99,
+          "quantity": 1,
+          "specialInstructions": "Extra sauce"
         },
         {
-          "id": 5,
-          "name": "Spicy Southwest",
-          "price": 9.95,
+          "id": "item2",
+          "name": "Quinoa Salad",
+          "price": 10.5,
           "quantity": 1
         }
       ],
-      "specialInstructions": "testst",
-      "total": 18.9,
-      "date": "2025-05-12T21:55:29.858Z",
-      "status": "pending"
-    },
-    {
-      "id": "ORD-076723370",
-      "customer": {
-        "name": "test",
-        "email": "test@gmail.com",
-        "phone": "1233456666"
-      },
       "pickup": {
-        "date": "2025-05-17",
-        "time": "14:00"
+        "date": "2024-05-20",
+        "time": "12:30"
       },
-      "items": [
-        {
-          "id": 4,
-          "name": "Berry Protein Smoothie Bowl",
-          "price": 8.95,
-          "quantity": 1
-        }
-      ],
-      "specialInstructions": "hey, this is a test for the time slots function",
-      "total": 8.95,
-      "date": "2025-05-13T16:17:56.723Z",
-      "status": "pending"
+      "total": 19.49,
+      "orderStatus": "Pending Venmo Payment",
+      "specialInstructions": "Call upon arrival",
+      "date": "2025-05-13T22:09:49.449Z",
+      "status": "Pending Venmo Payment"
     }
   ]
 }

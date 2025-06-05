@@ -11,14 +11,15 @@ import {
   ChevronDown,
   ChevronUp,
   User,
-  Calendar
+  Calendar,
+  Trash2
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { API_URL } from '../App';
 
 // Define order status type
-type OrderStatus = 'pending' | 'processing' | 'completed' | 'delivered' | 'cancelled' | 'Pending Venmo Payment';
+type OrderStatus = 'pending' | 'processing' | 'completed' | 'delivered' | 'cancelled' | 'Pending Venmo Payment' | 'Venmo Payment Completed' | 'Cash on Pickup' | 'Pending Cash Payment';
 
 // Define order types
 interface OrderItem {
@@ -199,6 +200,44 @@ const AdminOrdersPage: React.FC = () => {
     }
   };
 
+  // Delete order function
+  const handleDeleteOrder = async (orderId: string) => {
+    if (window.confirm(`Are you sure you want to delete order ${orderId}? This action cannot be undone.`)) {
+      try {
+        const response = await fetch(`${API_URL}/orders/${orderId}`, {
+          method: 'DELETE'
+        });
+        const data = await response.json();
+
+        if (data.success) {
+          setOrders(prevOrders => prevOrders.filter(order => order.id !== orderId));
+          setNotification({
+            show: true,
+            message: `Order ${orderId} deleted successfully`,
+            type: 'success'
+          });
+        } else {
+          setNotification({
+            show: true,
+            message: data.message || 'Failed to delete order',
+            type: 'error'
+          });
+        }
+      } catch (err) {
+        console.error('Error deleting order:', err);
+        setNotification({
+          show: true,
+          message: 'An error occurred while deleting the order.',
+          type: 'error'
+        });
+      }
+      // Hide notification after 3 seconds
+      setTimeout(() => {
+        setNotification(prev => ({ ...prev, show: false }));
+      }, 3000);
+    }
+  };
+
   // Format date
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -212,10 +251,16 @@ const AdminOrdersPage: React.FC = () => {
         return 'bg-yellow-100 text-yellow-800';
       case 'Pending Venmo Payment':
         return 'bg-orange-100 text-orange-800 border border-orange-300';
+      case 'Venmo Payment Completed':
+        return 'bg-green-100 text-green-800';
+      case 'Pending Cash Payment':
+        return 'bg-amber-100 text-amber-800 border border-amber-300';
       case 'processing':
         return 'bg-blue-100 text-blue-800';
       case 'completed':
         return 'bg-green-100 text-green-800';
+      case 'Cash on Pickup':
+        return 'bg-slate-100 text-slate-800 border border-slate-300';
       case 'delivered':
         return 'bg-purple-100 text-purple-800';
       case 'cancelled':
@@ -232,10 +277,16 @@ const AdminOrdersPage: React.FC = () => {
         return <Clock className="w-4 h-4" />;
       case 'Pending Venmo Payment':
         return <AlertCircle className="w-4 h-4 text-orange-600" />;
+      case 'Venmo Payment Completed':
+        return <Check className="w-4 h-4 text-green-600" />;
+      case 'Pending Cash Payment':
+        return <Clock className="w-4 h-4 text-amber-600" />;
       case 'processing':
         return <Package className="w-4 h-4" />;
       case 'completed':
         return <Check className="w-4 h-4" />;
+      case 'Cash on Pickup':
+        return <User className="w-4 h-4 text-slate-600" />;
       case 'delivered':
         return <Truck className="w-4 h-4" />;
       case 'cancelled':
@@ -261,8 +312,11 @@ const AdminOrdersPage: React.FC = () => {
     { value: 'all', label: 'All Statuses' },
     { value: 'pending', label: 'Pending' },
     { value: 'Pending Venmo Payment', label: 'Pending Venmo Payment' },
+    { value: 'Venmo Payment Completed', label: 'Venmo Payment Completed' },
+    { value: 'Pending Cash Payment', label: 'Pending Cash Payment' },
     { value: 'processing', label: 'Processing' },
     { value: 'completed', label: 'Completed' },
+    { value: 'Cash on Pickup', label: 'Cash on Pickup' },
     { value: 'delivered', label: 'Delivered' },
     { value: 'cancelled', label: 'Cancelled' },
   ];
@@ -530,11 +584,7 @@ const AdminOrdersPage: React.FC = () => {
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 <div className="flex flex-col">
                                   <span className="text-gray-500 text-sm">Pickup Date:</span>
-                                  <span className="font-medium">{order.pickup.date}</span>
-                                </div>
-                                <div className="flex flex-col">
-                                  <span className="text-gray-500 text-sm">Pickup Time:</span>
-                                  <span className="font-medium">{order.pickup.time}</span>
+                                  <span className="font-medium">{order.pickup.date} at {order.pickup.time}</span>
                                 </div>
                               </div>
                             </div>
@@ -563,7 +613,13 @@ const AdminOrdersPage: React.FC = () => {
                                   ))}
                                 </select>
                               </div>
-                              {/* Add other actions like "Print Invoice" or "Resend Confirmation" here if needed */}
+                              <button 
+                                onClick={() => handleDeleteOrder(order.id)}
+                                className="ml-2 p-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors text-sm flex items-center"
+                                title="Delete Order"
+                              >
+                                <Trash2 size={16} className="mr-1" /> Delete
+                              </button>
                             </div>
                           </motion.div>
                         )}

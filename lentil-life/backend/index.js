@@ -4,14 +4,9 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { processMenuExcel, updateMenuData } = require('./menuService');
+const { getPaymentSettings, updatePaymentSettings } = require('./paymentSettingsUtils');
+const timeSlotRoutes = require('./timeSlotRoutes');
 const { 
-  getAllMenuItems,
-  getMenuItemById,
-  addMenuItem,
-  updateMenuItem,
-  deleteMenuItem,
-  getMenuItemsByCategory,
-  getAllCategories,
   syncMenuWithFrontend,
   backupData,
   restoreFromBackup
@@ -21,7 +16,8 @@ const {
   getAllOrders,
   getOrderById,
   createOrder,
-  updateOrderStatus
+  updateOrderStatus,
+  deleteOrderById
 } = require('./orderUtils');
 const {
   getTimeSlotConfig,
@@ -32,19 +28,64 @@ const {
   getAvailableTimeSlots
 } = require('./timeSlotUtils');
 const {
-  getPaymentSettings,
-  updatePaymentSettings
-} = require('./paymentSettingsUtils');
+  getAllMenuItems,
+  getFeaturedMenuItems: getFeaturedMenuItemsFromSupabase,
+  getMenuItemByIdFromSupabase,
+  getMenuItemsByCategory,
+  getAllCategories,
+  addMenuItem,
+  updateMenuItem,
+  deleteMenuItem
+} = require('./menuUtils');
+const cron = require('node-cron');
+
+// Initialize Supabase client (this will also load dotenv)
+require('./supabaseClient'); 
+
+// Import authentication routes
+const authRoutes = require('./authRoutes');
+const orderRoutes = require('./orderRoutes');
+const paymentRoutes = require('./paymentRoutes');
+const pointsRoutes = require('./pointsRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: [
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'http://localhost:5000'
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+// Raw body parser for Stripe webhooks (must be before express.json())
+app.use('/api/payment/webhook', express.raw({ type: 'application/json' }));
+
+// JSON parser for all other routes
 app.use(express.json());
 
+// Add authentication routes
+app.use('/api/auth', authRoutes);
+
+// Add orders routes
+app.use('/api/orders', orderRoutes);
+
+// Add payment routes
+app.use('/api/payment', paymentRoutes);
+
+// Add points routes
+app.use('/api/points', pointsRoutes);
+
+// Add time slot routes
+app.use('/api/time-slots', timeSlotRoutes);
+
 // Serve static files from the frontend build
-app.use(express.static(path.join(__dirname, '../frontend/dist')));
+// app.use(express.static(path.join(__dirname, '../frontend/dist'))); // Comment this out
 
 // Create uploads directory if it doesn't exist
 const uploadsDir = path.join(__dirname, 'uploads');
@@ -115,7 +156,7 @@ app.use('/images', express.static(path.join(__dirname, 'public', 'images')));
 // Get all menu items
 app.get('/api/menu/items', async (req, res) => {
   try {
-    const items = await getAllMenuItems();
+    const items = await getFeaturedMenuItemsFromSupabase();
     res.json({ success: true, items });
   } catch (error) {
     console.error('Error getting menu items:', error);
@@ -131,7 +172,9 @@ app.get('/api/menu/items', async (req, res) => {
 app.get('/api/menu/items/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const item = await getMenuItemById(id);
+    console.log(`[index.js /api/menu/items/:id] Received request for ID (type: ${typeof id}):`, id);
+    const item = await getMenuItemByIdFromSupabase(id);
+    console.log(`[index.js /api/menu/items/:id] Result from getMenuItemByIdFromSupabase for ID ${id}:`, item);
     
     if (!item) {
       return res.status(404).json({
@@ -414,37 +457,48 @@ app.post('/api/upload/images', imageUpload.array('images', 5), (req, res) => {
   }
 });
 
-// Create a backup
-app.post('/api/backup', async (req, res) => {
+// Payment Settings API Routes
+app.get('/api/payment-settings', async (req, res) => {
   try {
-    const backupId = await backupData();
-    res.json({ 
-      success: true, 
-      message: 'Backup created successfully',
-      backupId
-    });
+    const settings = await getPaymentSettings();
+    res.json({ success: true, settings });
   } catch (error) {
-    console.error('Error creating backup:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to create backup', 
-      error: error.message 
-    });
+    console.error('Error fetching payment settings:', error);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// Get list of available backups
-app.get('/api/backups', (req, res) => {
+app.put('/api/payment-settings', async (req, res) => {
+  try {
+    const updatedSettings = await updatePaymentSettings(req.body);
+    res.json({ success: true, settings: updatedSettings });
+  } catch (error) {
+    console.error('Error updating payment settings:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Backup and restore routes
+app.post('/api/backups', async (req, res) => {
+  try {
+    const backup = await backupData();
+    res.json({ success: true, backup });
+  } catch (error) {
+    console.error('Error creating backup:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/backups', async (req, res) => {
   try {
     const backupsDir = path.join(__dirname, 'data', 'backups');
     
-    // Create directory if it doesn't exist
     if (!fs.existsSync(backupsDir)) {
-      fs.mkdirSync(backupsDir, { recursive: true });
       return res.json({ success: true, backups: [] });
     }
     
-    const backupFiles = fs.readdirSync(backupsDir)
+    const files = fs.readdirSync(backupsDir);
+    const backups = files
       .filter(file => file.endsWith('.json'))
       .map(file => {
         const filePath = path.join(backupsDir, file);
@@ -452,393 +506,86 @@ app.get('/api/backups', (req, res) => {
         return {
           id: file.replace('.json', ''),
           name: file,
-          createdAt: stats.mtime.toISOString(),
+          createdAt: stats.birthtime.toISOString(),
           size: stats.size
         };
       })
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     
-    res.json({ success: true, backups: backupFiles });
+    res.json({ success: true, backups });
   } catch (error) {
-    console.error('Error getting backups:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to get backups', 
-      error: error.message 
-    });
+    console.error('Error fetching backups:', error);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// Restore from backup
-app.post('/api/restore/:backupId', async (req, res) => {
+app.post('/api/backups/:id/restore', async (req, res) => {
   try {
-    const { backupId } = req.params;
-    const result = await restoreFromBackup(backupId);
-    
-    if (result.success) {
-      // Sync with frontend after restore
-      await syncMenuWithFrontend();
-      
-      res.json({ 
-        success: true, 
-        message: 'Backup restored successfully' 
-      });
-    } else {
-      res.status(400).json({ 
-        success: false, 
-        message: result.message 
-      });
-    }
+    const { id } = req.params;
+    const result = await restoreFromBackup(id);
+    res.json({ success: true, result });
   } catch (error) {
     console.error('Error restoring backup:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to restore backup', 
-      error: error.message 
-    });
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// Delete a backup
-app.delete('/api/backup/:backupId', (req, res) => {
+app.delete('/api/backups/:id', async (req, res) => {
   try {
-    const { backupId } = req.params;
-    const backupPath = path.join(__dirname, 'data', 'backups', `${backupId}.json`);
+    const { id } = req.params;
+    const backupPath = path.join(__dirname, 'data', 'backups', `${id}.json`);
     
-    if (!fs.existsSync(backupPath)) {
-      return res.status(404).json({
-        success: false,
-        message: `Backup with ID ${backupId} not found`
-      });
-    }
-    
+    if (fs.existsSync(backupPath)) {
     fs.unlinkSync(backupPath);
-    
-    res.json({ 
-      success: true, 
-      message: 'Backup deleted successfully' 
-    });
+      res.json({ success: true, message: 'Backup deleted successfully' });
+    } else {
+      res.status(404).json({ success: false, error: 'Backup not found' });
+    }
   } catch (error) {
     console.error('Error deleting backup:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err);
     res.status(500).json({ 
       success: false, 
-      message: 'Failed to delete backup', 
-      error: error.message 
+    error: 'Internal server error' 
     });
-  }
+});
+
+// Serve static files from uploads directory
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+    res.json({ 
+      success: true, 
+    message: 'Server is running',
+    timestamp: new Date().toISOString()
+    });
+});
+
+// Start server
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log('Supabase client initialized.');
+  console.log(`📧 Email service initialized`);
+  console.log(`💳 Payment processing ready`);
+  console.log(`🛒 E-commerce features active`);
 });
 
 // Schedule automatic backups (daily)
-const scheduleBackup = () => {
-  const BACKUP_INTERVAL = 24 * 60 * 60 * 1000; // 24 hours
-  
-  // Create a backup on startup
-  backupData().catch(err => console.error('Error creating initial backup:', err));
-  
-  // Schedule regular backups
-  setInterval(async () => {
-    try {
-      await backupData();
-      console.log('Automatic backup created successfully');
-      
-      // Clean up old backups - keep only the most recent 10
-      const backupsDir = path.join(__dirname, 'data', 'backups');
-      if (fs.existsSync(backupsDir)) {
-        const backupFiles = fs.readdirSync(backupsDir)
-          .filter(file => file.endsWith('.json'))
-          .map(file => {
-            const filePath = path.join(backupsDir, file);
-            const stats = fs.statSync(filePath);
-            return {
-              name: file,
-              path: filePath,
-              createdAt: stats.mtime.toISOString()
-            };
-          })
-          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-        
-        // Delete older backups (keep 10 most recent)
-        if (backupFiles.length > 10) {
-          backupFiles.slice(10).forEach(file => {
-            fs.unlinkSync(file.path);
-          });
-        }
-      }
-    } catch (error) {
-      console.error('Error during automatic backup:', error);
-    }
-  }, BACKUP_INTERVAL);
-};
-
-// Get all orders
-app.get('/api/orders', async (req, res) => {
+cron.schedule('0 2 * * *', async () => {
   try {
-    const orders = await getAllOrders();
-    res.json({ success: true, orders });
+    console.log('Running automatic backup...');
+    await backupData();
+    console.log('Automatic backup completed successfully');
   } catch (error) {
-    console.error('Error getting orders:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to get orders', 
-      error: error.message 
-    });
+    console.error('Automatic backup failed:', error);
   }
 });
 
-// Get order by ID
-app.get('/api/orders/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const order = await getOrderById(id);
-    
-    if (!order) {
-      return res.status(404).json({
-        success: false,
-        message: `Order with ID ${id} not found`
-      });
-    }
-    
-    res.json({ success: true, order });
-  } catch (error) {
-    console.error(`Error getting order with ID ${req.params.id}:`, error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to get order', 
-      error: error.message 
-    });
-  }
-});
-
-// Create a new order
-app.post('/api/orders', async (req, res) => {
-  try {
-    const orderDetails = req.body;
-    
-    // Basic validation
-    if (!orderDetails.customer || !orderDetails.items) {
-      return res.status(400).json({
-        success: false,
-        message: 'Customer information and items are required'
-      });
-    }
-    
-    const newOrder = await createOrder(orderDetails);
-    
-    res.status(201).json({ 
-      success: true, 
-      message: 'Order created successfully',
-      order: newOrder
-    });
-  } catch (error) {
-    console.error('Error creating order:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to create order', 
-      error: error.message 
-    });
-  }
-});
-
-// Update order status
-app.put('/api/orders/:id/status', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { status } = req.body;
-    
-    // Validate status
-    const validStatuses = ['pending', 'processing', 'completed', 'delivered', 'cancelled', 'Pending Venmo Payment'];
-    if (!validStatuses.includes(status)) {
-      return res.status(400).json({
-        success: false,
-        message: `Invalid status. Must be one of: ${validStatuses.join(', ')}`
-      });
-    }
-    
-    const updatedOrder = await updateOrderStatus(id, status);
-    
-    if (!updatedOrder) {
-      return res.status(404).json({
-        success: false,
-        message: `Order with ID ${id} not found`
-      });
-    }
-    
-    res.json({ 
-      success: true, 
-      message: 'Order status updated successfully',
-      order: updatedOrder
-    });
-  } catch (error) {
-    console.error(`Error updating status for order ${req.params.id}:`, error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to update order status', 
-      error: error.message 
-    });
-  }
-});
-
-// Time Slot API Endpoints
-// Get time slot configuration
-app.get('/api/time-slots/config', async (req, res) => {
-  try {
-    const config = await getTimeSlotConfig();
-    res.json({ success: true, config });
-  } catch (error) {
-    console.error('Error getting time slot config:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to get time slot configuration', 
-      error: error.message 
-    });
-  }
-});
-
-// Update time slot configuration
-app.put('/api/time-slots/config', async (req, res) => {
-  try {
-    const updatedConfig = req.body;
-    const config = await updateTimeSlotConfig(updatedConfig);
-    res.json({ success: true, config });
-  } catch (error) {
-    console.error('Error updating time slot config:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to update time slot configuration', 
-      error: error.message 
-    });
-  }
-});
-
-// Add a new time slot
-app.post('/api/time-slots', async (req, res) => {
-  try {
-    const newTimeSlot = req.body;
-    const config = await addTimeSlot(newTimeSlot);
-    res.status(201).json({ success: true, config });
-  } catch (error) {
-    console.error('Error adding time slot:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to add time slot', 
-      error: error.message 
-    });
-  }
-});
-
-// Update a time slot
-app.put('/api/time-slots/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const updatedTimeSlot = req.body;
-    const config = await updateTimeSlot(id, updatedTimeSlot);
-    res.json({ success: true, config });
-  } catch (error) {
-    console.error(`Error updating time slot with ID ${req.params.id}:`, error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to update time slot', 
-      error: error.message 
-    });
-  }
-});
-
-// Delete a time slot
-app.delete('/api/time-slots/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const config = await deleteTimeSlot(id);
-    res.json({ success: true, config });
-  } catch (error) {
-    console.error(`Error deleting time slot with ID ${req.params.id}:`, error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to delete time slot', 
-      error: error.message 
-    });
-  }
-});
-
-// Get available time slots for a specific date
-app.get('/api/time-slots/available/:date', async (req, res) => {
-  try {
-    const { date } = req.params;
-    
-    // Validate date format (YYYY-MM-DD)
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid date format. Use YYYY-MM-DD'
-      });
-    }
-    
-    const availableSlots = await getAvailableTimeSlots(date);
-    res.json({ success: true, availableSlots });
-  } catch (error) {
-    console.error(`Error getting available time slots for date ${req.params.date}:`, error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to get available time slots', 
-      error: error.message 
-    });
-  }
-});
-
-// Payment Settings API Endpoints
-// Get payment settings
-app.get('/api/payment-settings', async (req, res) => {
-  try {
-    const settings = await getPaymentSettings();
-    res.json({ 
-      success: true, 
-      settings 
-    });
-  } catch (error) {
-    console.error('Error getting payment settings:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to get payment settings', 
-      error: error.message 
-    });
-  }
-});
-
-// Update payment settings
-app.put('/api/payment-settings', async (req, res) => {
-  try {
-    const updatedSettings = req.body;
-    
-    // Basic validation
-    if (!updatedSettings.venmoUsername) {
-      return res.status(400).json({
-        success: false,
-        message: 'Venmo username is required'
-      });
-    }
-    
-    const settings = await updatePaymentSettings(updatedSettings);
-    res.json({ 
-      success: true, 
-      message: 'Payment settings updated successfully',
-      settings 
-    });
-  } catch (error) {
-    console.error('Error updating payment settings:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to update payment settings', 
-      error: error.message 
-    });
-  }
-});
-
-// Serve React application for all other routes
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
-});
-
-// Start the server with backup scheduling
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  scheduleBackup();
-}); 
+module.exports = app; 

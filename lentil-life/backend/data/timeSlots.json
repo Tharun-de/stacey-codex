@@ -1,5 +1,9 @@
 {
-  "availableDays": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+  "availableDays": [
+    "Wednesday",
+    "Thursday",
+    "Friday"
+  ],
   "timeSlots": [
     {
       "id": "1",

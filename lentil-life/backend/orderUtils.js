@@ -1,158 +1,157 @@
-const fs = require('fs');
-const path = require('path');
-const { v4: uuidv4 } = require('uuid');
-
-/**
- * Read order data from JSON file
- * @returns {Promise<Object>} Order data
- */
-async function readOrderData() {
-  try {
-    // Create data directory if it doesn't exist
-    const dataDir = path.join(__dirname, 'data');
-    if (!fs.existsSync(dataDir)) {
-      fs.mkdirSync(dataDir, { recursive: true });
-    }
-    
-    const filePath = path.join(dataDir, 'orders.json');
-    
-    // If file doesn't exist, create it with empty order list
-    if (!fs.existsSync(filePath)) {
-      const emptyOrderData = { orders: [] };
-      fs.writeFileSync(filePath, JSON.stringify(emptyOrderData, null, 2));
-      return emptyOrderData;
-    }
-    
-    // Read and parse file
-    const fileData = fs.readFileSync(filePath, 'utf8');
-    return JSON.parse(fileData);
-  } catch (error) {
-    console.error('Error reading order data:', error);
-    // Return empty order data on error
-    return { orders: [] };
-  }
-}
-
-/**
- * Write order data to JSON file
- * @param {Object} orderData - Order data to write
- * @returns {Promise<boolean>} Success status
- */
-async function writeOrderData(orderData) {
-  try {
-    // Create data directory if it doesn't exist
-    const dataDir = path.join(__dirname, 'data');
-    if (!fs.existsSync(dataDir)) {
-      fs.mkdirSync(dataDir, { recursive: true });
-    }
-    
-    const filePath = path.join(dataDir, 'orders.json');
-    
-    // Write data to file
-    fs.writeFileSync(filePath, JSON.stringify(orderData, null, 2));
-    return true;
-  } catch (error) {
-    console.error('Error writing order data:', error);
-    throw error;
-  }
-}
+const supabase = require('./supabaseClient');
 
 /**
  * Get all orders
  * @returns {Promise<Array>} All orders
  */
 async function getAllOrders() {
+  if (!supabase) throw new Error('Supabase client not initialized');
   try {
-    const orderData = await readOrderData();
-    return orderData.orders;
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*')
+      .order('created_at', { ascending: false }); // Optional: order by creation date
+
+    if (error) throw error;
+    return data || []; // Return data or empty array if null
   } catch (error) {
-    console.error('Error getting all orders:', error);
+    console.error('[Supabase] Error getting all orders:', error);
     throw error;
   }
 }
 
 /**
  * Get order by ID
- * @param {string} id - Order ID
+ * @param {string} id - Order ID (UUID from Supabase)
  * @returns {Promise<Object|null>} Order object or null if not found
  */
 async function getOrderById(id) {
+  if (!supabase) throw new Error('Supabase client not initialized');
   try {
-    const orderData = await readOrderData();
-    return orderData.orders.find(order => order.id === id) || null;
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('id', id)
+      .single(); // Use .single() if ID is a unique primary key
+
+    if (error) {
+      // If error is because no rows found, .single() makes it an error. We can treat it as not found.
+      if (error.code === 'PGRST116') { // PGRST116: "The result contains 0 rows"
+        return null;
+      }
+      throw error;
+    }
+    return data;
   } catch (error) {
-    console.error(`Error getting order with ID ${id}:`, error);
+    console.error(`[Supabase] Error getting order with ID ${id}:`, error);
     throw error;
   }
 }
 
 /**
  * Create a new order
- * @param {Object} orderDetails - Order details
+ * @param {Object} orderDetails - Order details from the frontend (customer, items, pickup, total, orderStatus, specialInstructions)
  * @returns {Promise<Object>} Created order
  */
 async function createOrder(orderDetails) {
+  if (!supabase) throw new Error('Supabase client not initialized');
   try {
-    const orderData = await readOrderData();
-    
-    // Generate unique order ID with ORD prefix
-    const orderId = `ORD-${Date.now().toString().substring(7)}${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
-    
-    // Create new order with timestamp
-    const newOrder = {
-      id: orderId,
-      ...orderDetails,
-      date: new Date().toISOString(),
-      status: orderDetails.orderStatus || orderDetails.status || 'pending'
+    // Note: Supabase handles 'id' (as UUID) and 'created_at' automatically.
+    // 'updated_at' is also handled by the trigger we set up.
+    // We need to map frontend orderDetails to the database schema.
+
+    const orderToInsert = {
+      customer: orderDetails.customer,       // Should be a JSON object
+      items: orderDetails.items,             // Should be an array of JSON objects
+      pickup: orderDetails.pickup,           // Should be a JSON object { date, time }
+      total: orderDetails.total,
+      status: orderDetails.orderStatus || orderDetails.status || 'pending',
+      special_instructions: orderDetails.specialInstructions
+      // created_at and updated_at will be set by Supabase defaults/triggers
+      // id will be generated by Supabase as a UUID
     };
-    
-    // Add to orders array
-    orderData.orders.push(newOrder);
-    
-    // Save to file
-    await writeOrderData(orderData);
-    
-    return newOrder;
+
+    const { data, error } = await supabase
+      .from('orders')
+      .insert([orderToInsert])
+      .select() // select() is important to return the inserted row(s)
+      .single(); // Assuming we insert one and want that one back
+
+    if (error) throw error;
+    return data; 
   } catch (error) {
-    console.error('Error creating order:', error);
+    console.error('[Supabase] Error creating order:', error);
     throw error;
   }
 }
 
 /**
  * Update order status
- * @param {string} id - Order ID
+ * @param {string} id - Order ID (UUID from Supabase)
  * @param {string} status - New status
  * @returns {Promise<Object|null>} Updated order or null if not found
  */
 async function updateOrderStatus(id, status) {
+  if (!supabase) throw new Error('Supabase client not initialized');
   try {
-    const orderData = await readOrderData();
-    
-    // Find order index
-    const orderIndex = orderData.orders.findIndex(order => order.id === id);
-    
-    if (orderIndex === -1) {
-      return null; // Order not found
+    const { data, error } = await supabase
+      .from('orders')
+      .update({ status: status /*, updated_at will be handled by trigger */ })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+        // If error is because no rows found to update (match condition failed)
+        if (error.code === 'PGRST116') { 
+            return null; // Treat as not found
+        }
+        throw error;
     }
-    
-    // Update status
-    orderData.orders[orderIndex].status = status;
-    
-    // Save to file
-    await writeOrderData(orderData);
-    
-    return orderData.orders[orderIndex];
+    return data;
   } catch (error) {
-    console.error(`Error updating status for order ${id}:`, error);
+    console.error(`[Supabase] Error updating status for order ${id}:`, error);
     throw error;
   }
 }
 
+/**
+ * Delete order by ID
+ * @param {string} id - Order ID (UUID from Supabase)
+ * @returns {Promise<boolean>} True if deleted, false if not found or error
+ */
+async function deleteOrderById(id) {
+  if (!supabase) throw new Error('Supabase client not initialized');
+  try {
+    const { error, count } = await supabase
+      .from('orders')
+      .delete({ count: 'exact' })
+      .eq('id', id);
+
+    if (error) {
+      console.error(`[Supabase] Error deleting order with ID ${id}:`, error);
+      throw error;
+    }
+    
+    if (count === 1) {
+      return true; // Successfully deleted one row
+    } else if (count === 0) {
+      return false; // Order not found to delete
+    } else {
+      console.warn(`[Supabase] Unusual count (${count}) after delete for order ID ${id}`);
+      return false; 
+    }
+
+  } catch (error) { 
+    console.error(`[Supabase] Error deleting order with ID ${id}:`, error);
+    throw error; 
+  }
+}
+
 module.exports = {
-  readOrderData,
   getAllOrders,
   getOrderById,
   createOrder,
-  updateOrderStatus
+  updateOrderStatus,
+  deleteOrderById
 }; 

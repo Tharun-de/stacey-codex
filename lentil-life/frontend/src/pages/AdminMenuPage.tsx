@@ -20,7 +20,6 @@ import {
   ShoppingBag
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { menuItems } from '../data/menuData';
 import { API_URL } from '../App';
 import { resizeImageBeforeUpload } from '../utils/imageService';
 import OptimizedImage from '../components/OptimizedImage';
@@ -72,16 +71,7 @@ const AdminMenuPage: React.FC = () => {
     vegan: false,
     glutenFree: false
   });
-  const [items, setItems] = useState<MenuItemAdmin[]>(menuItems.map(item => ({
-    id: String(item.id),
-    name: item.name,
-    price: item.price,
-    category: item.category,
-    description: item.description,
-    image: item.image,
-    isVegan: item.dietaryInfo?.vegan,
-    isGlutenFree: item.dietaryInfo?.glutenFree
-  })));
+  const [items, setItems] = useState<MenuItemAdmin[]>([]);
   const [editingItem, setEditingItem] = useState<MenuItemAdmin | null>(null);
   const [newItem, setNewItem] = useState<Partial<MenuItemAdmin>>({
     name: '',

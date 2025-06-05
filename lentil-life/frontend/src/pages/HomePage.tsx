@@ -1,14 +1,44 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import Hero from '../components/Hero';
 import { Link } from 'react-router-dom';
-import { menuItems } from '../data/menuData';
+import { API_URL } from '../App';
+import { MenuItem } from '../types';
 
-const HomePage = () => {
-  // Get a selection of items for the featured grid - let's ensure we select some popular items
-  const featuredItems = menuItems
-    .filter(item => item.popular || menuItems.indexOf(item) < 3) // Get popular items or first 3
-    .slice(0, 3); // Limit to 3 items
+const HomePage: React.FC = () => {
+  const [featuredItems, setFeaturedItems] = useState<MenuItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchFeaturedItems = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const response = await fetch(`${API_URL}/menu/items`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch menu items');
+        }
+        const data = await response.json();
+        if (data.success && Array.isArray(data.items)) {
+          const allItems: MenuItem[] = data.items;
+          const filtered = allItems
+            .filter(item => item.popular || allItems.indexOf(item) < 3)
+            .slice(0, 3);
+          setFeaturedItems(filtered);
+        } else {
+          throw new Error('Invalid data format received');
+        }
+      } catch (err) {
+        const e = err as Error;
+        setError(e.message || 'Could not load featured items.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchFeaturedItems();
+  }, []);
 
   return (
     <>
@@ -23,46 +53,55 @@ const HomePage = () => {
         <Hero />
         
         {/* Featured Products Grid - Mast Market style */}
-        <section className="py-20">
-          <div className="container mx-auto px-4 md:px-8">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {[
-                {
-                  title: "Breakfast",
-                  image: "https://images.unsplash.com/photo-1533089860892-a7c6f0a88666",
-                  link: "/shop?category=breakfast"
-                },
-                {
-                  title: "Lunch",
-                  image: "https://images.unsplash.com/photo-1547496502-affa22d38842",
-                  link: "/shop?category=lunch"
-                },
-                {
-                  title: "Dinner",
-                  image: "https://images.unsplash.com/photo-1594834749740-74b3f6764be4",
-                  link: "/shop?category=dinner"
-                }
-              ].map((category) => (
-                <Link 
-                  key={category.title}
-                  to={category.link}
-                  className="block group"
-                >
-                  <div className="aspect-[4/3] overflow-hidden mb-4">
-                    <img 
-                      src={category.image} 
-                      alt={category.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                    />
+        <section className="py-12 md:py-20 bg-gray-50">
+          <div className="container mx-auto px-4">
+            <h2 className="text-2xl md:text-3xl font-light text-center text-gray-800 mb-10 md:mb-16">
+              Freshly Made, Just For You
+            </h2>
+            
+            {isLoading && (
+              <div className="text-center text-gray-500">
+                <p>Loading featured items...</p>
+              </div>
+            )}
+
+            {error && (
+              <div className="text-center text-red-500 bg-red-50 p-4 rounded-md">
+                <p>Could not load featured items: {error}</p>
+              </div>
+            )}
+
+            {!isLoading && !error && featuredItems.length === 0 && (
+              <div className="text-center text-gray-500">
+                <p>No featured items to display at the moment. Check out our <Link to="/shop" className="text-green-600 hover:underline">full menu</Link>!</p>
+              </div>
+            )}
+
+            {!isLoading && !error && featuredItems.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+                {featuredItems.map((item) => (
+                  <div key={item.id} className="bg-white rounded-lg shadow-sm overflow-hidden group">
+                    <Link to={`/product/${item.id}`} className="block">
+                      <div className="aspect-square overflow-hidden mb-4">
+                        <img 
+                          src={item.image} 
+                          alt={item.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                        />
+                      </div>
+                      <h3 className="font-light text-lg mb-1">{item.name}</h3>
+                      <p className="text-gray-700 font-light mb-2">${item.price.toFixed(2)}</p>
+                    </Link>
+                    <Link 
+                      to={`/product/${item.id}`} 
+                      className="text-sm uppercase tracking-wide font-light border-b border-gray-400 pb-0.5 hover:border-black"
+                    >
+                      View Details
+                    </Link>
                   </div>
-                  <div className="text-center">
-                    <h3 className="uppercase tracking-wide text-sm font-light">
-                      Shop {category.title}
-                    </h3>
-                  </div>
-                </Link>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </section>
         
@@ -82,37 +121,6 @@ const HomePage = () => {
               >
                 Learn More
               </Link>
-            </div>
-          </div>
-        </section>
-        
-        {/* Featured Products */}
-        <section className="py-20">
-          <div className="container mx-auto px-4 md:px-8">
-            <h2 className="text-2xl font-light mb-12 text-center">Featured Items</h2>
-              
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {featuredItems.map(item => (
-                <div key={item.id} className="group">
-                  <Link to={`/product/${item.id}`} className="block">
-                    <div className="aspect-square overflow-hidden mb-4">
-                      <img 
-                        src={item.image} 
-                        alt={item.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                      />
-              </div>
-                    <h3 className="font-light text-lg mb-1">{item.name}</h3>
-                    <p className="text-gray-700 font-light mb-2">${item.price.toFixed(2)}</p>
-                  </Link>
-                <Link 
-                    to={`/product/${item.id}`} 
-                    className="text-sm uppercase tracking-wide font-light border-b border-gray-400 pb-0.5 hover:border-black"
-                >
-                    View Details
-                </Link>
-                </div>
-              ))}
             </div>
           </div>
         </section>
